@@ -1,7 +1,9 @@
 import {App, Modal, Notice, Setting, TFile} from 'obsidian';
 import type DoubanPlugin from '../main';
 import {TYPE_NAMES} from './model';
-import {importableConfig, markDuplicatePreviews, MigrationPreview} from './migration';
+import {markDuplicatePreviews, MigrationPreview} from './migration';
+import {applyConfigImport,parseConfigImport} from './config-import';
+import {Properties} from './properties';
 
 export class ConfirmModal extends Modal {
   constructor(app:App, private title:string, private text:string, private action:()=>Promise<void>, private label='确认') {super(app);}
@@ -13,14 +15,65 @@ export class ConfirmModal extends Modal {
   }
   onClose():void {this.contentEl.empty();}
 }
-export async function openConfigImport(plugin:DoubanPlugin):Promise<void> {
-  const path=`${plugin.app.vault.configDir}/plugins/obsidian-douban-plugin/data.json`;
-  if(!await plugin.app.vault.adapter.exists(path)) throw new Error('当前笔记库中未找到原豆瓣插件配置');
-  const patch=importableConfig(JSON.parse(await plugin.app.vault.adapter.read(path)));
-  new ConfirmModal(plugin.app,'从原豆瓣插件导入配置',`导入模板、输出路径及字段配置；登录凭据不导入。请在 Plus 中重新登录。\n\n${JSON.stringify(patch,null,2)}`,async()=>{
-    Object.assign(plugin.settings,patch);await plugin.saveSettings();
-    await plugin.dashboardIndex.rebuild();new Notice('配置已导入，请在插件设置中重新登录');
-  },'导入配置').open();
+export async function openConfigImport(plugin:DoubanPlugin,onImported?:()=>void):Promise<void> {
+  new ConfigImportModal(plugin,onImported).open();
+}
+export class ConfigImportModal extends Modal {
+  private input:HTMLTextAreaElement;private preview:HTMLElement;private status:HTMLElement;
+  private confirm:HTMLButtonElement;private patch:Properties;private revision=0;private closed=false;private busy=false;
+  constructor(private plugin:DoubanPlugin,private onImported?:()=>void){super(plugin.app);}
+  onOpen():void {
+    this.modalEl.addClass('douban-plus-config-import');const el=this.contentEl;
+    el.createEl('h2',{text:'导入原豆瓣配置'});
+    el.createEl('p',{text:'把旧豆瓣插件的模板路径、输出路径、字段设置和同步历史迁移到 Plus。两处导入入口功能相同；不复制笔记、模板或附件，不导入登录信息。'});
+    const sources=el.createDiv({cls:'douban-plus-config-sources'});
+    const read=sources.createEl('button',{text:'读取当前库的旧配置'});
+    read.onclick=()=>void this.load(async()=>{
+      const path=`${this.app.vault.configDir}/plugins/obsidian-douban-plugin/data.json`;
+      if(!await this.app.vault.adapter.exists(path))throw new Error('当前库未找到旧插件配置，请选择 data.json 文件或在下方粘贴 JSON');
+      return this.app.vault.adapter.read(path);
+    });
+    const fileLabel=sources.createEl('label');fileLabel.createSpan({text:'或选择 JSON 文件'});
+    const file=fileLabel.createEl('input',{type:'file',attr:{accept:'.json,application/json','aria-label':'选择原插件 JSON 配置文件'}});
+    file.onchange=()=>{const selected=file.files?.[0];if(selected)void this.load(()=>selected.text());};
+    const inputLabel=el.createEl('label',{cls:'douban-plus-config-input-label'});inputLabel.createSpan({text:'配置 JSON · 可以粘贴或编辑后预览'});
+    this.input=inputLabel.createEl('textarea',{cls:'douban-plus-config-input',attr:{'aria-label':'原插件配置 JSON',placeholder:'粘贴原插件 data.json 的内容',spellcheck:'false'}});
+    this.input.oninput=()=>{this.invalidate();this.status.setText('内容已更改，请重新预览。');};
+    this.status=el.createDiv({cls:'douban-plus-config-status',attr:{role:'status','aria-live':'polite'}});
+    this.preview=el.createDiv({cls:'douban-plus-config-preview'});
+    const actions=el.createDiv({cls:'douban-plus-config-actions'});
+    const preview=actions.createEl('button',{text:'预览配置'});preview.onclick=()=>this.showPreview();
+    this.confirm=actions.createEl('button',{text:'确认导入',cls:'mod-cta'});this.confirm.disabled=true;
+    this.confirm.onclick=()=>void this.apply();
+    actions.createEl('button',{text:'取消'}).onclick=()=>this.close();
+    this.status.setText('选择一种来源，先预览，再确认导入。');
+  }
+  private invalidate():void {this.revision++;this.patch=undefined;this.confirm.disabled=true;this.preview.empty();}
+  private async load(read:()=>Promise<string>):Promise<void> {
+    if(this.busy)return;this.invalidate();this.input.value='';const revision=this.revision;this.status.setText('正在读取配置…');
+    try {
+      const patch=parseConfigImport(await read());if(this.closed || revision!==this.revision)return;
+      this.input.value=JSON.stringify(patch,null,2);this.status.setText('已读取配置，并排除登录信息与不支持的字段。请点击“预览配置”。');
+    }catch(e){if(!this.closed && revision===this.revision)this.status.setText(String(e.message || e));}
+  }
+  private showPreview():void {
+    if(this.busy)return;this.invalidate();
+    try {
+      this.patch=parseConfigImport(this.input.value);this.input.value=JSON.stringify(this.patch,null,2);
+      this.preview.createEl('h3',{text:'将导入的设置'});
+      this.preview.createEl('pre',{text:JSON.stringify(this.patch,null,2),cls:'douban-plus-preview'});
+      this.status.setText(`可导入 ${Object.keys(this.patch).length} 项设置。确认后替换 Plus 中的对应设置；旧插件原文件保留。`);
+      this.confirm.disabled=false;
+    }catch(e){this.status.setText(String(e.message || e));}
+  }
+  private async apply():Promise<void> {
+    if(this.busy || !this.patch)return;this.busy=true;this.confirm.disabled=true;this.input.disabled=true;
+    try {
+      await applyConfigImport(this.plugin,this.patch);new Notice('配置已导入；如需同步，请在 Plus 中重新登录');this.onImported?.();this.close();
+    }catch(e){this.status.setText(String(e.message || e));this.confirm.disabled=false;}
+    finally{this.busy=false;this.input.disabled=false;}
+  }
+  onClose():void {this.closed=true;this.revision++;this.contentEl.empty();}
 }
 export class MigrationModal extends Modal {
   private previews:MigrationPreview[]=[];

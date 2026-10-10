@@ -23,6 +23,7 @@ export class DoubanSearchModal extends Modal {
 
 	onOpen() {
 		let {contentEl} = this;
+		this.modalEl.addClass('douban-plus-search-modal');
 
 		contentEl.createEl("h3", {text: i18nHelper.getMessage('110003')});
 		const content = contentEl.createDiv("content");
@@ -33,7 +34,8 @@ export class DoubanSearchModal extends Modal {
 			this.searchTerm = searchTerm;
 		});
 		inputs.addClass("obsidian_douban_search_input_content");
-		searchInput.inputEl.size = 40;
+		searchInput.inputEl.setAttribute('aria-label','搜索关键词');
+		searchInput.inputEl.placeholder='输入标题或关键词';
 
 		searchInput.inputEl.addEventListener("keydown", (event) => {
 			if (event.key === "Enter") {
@@ -53,6 +55,7 @@ export class DoubanSearchModal extends Modal {
 			this.searchType = value;
 		});
 		typeSelect.addClass('obsidian_douban_search_input_type');
+		typeSelectInput.selectEl.setAttribute('aria-label','搜索类型');
 
 
 		const controls = contentEl.createDiv("controls");

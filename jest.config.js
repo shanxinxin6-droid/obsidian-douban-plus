@@ -1,6 +1,7 @@
 module.exports = {
     preset: 'ts-jest',
     rootDir: './',
+    testPathIgnorePatterns: ['/node_modules/', '/.references/', '/.dev-vault/', '/dist/'],
     testRegex: '(/test/.*\\.(test|spec))\\.[tj]sx?$',
     moduleFileExtensions: [
         "ts",
@@ -13,8 +14,7 @@ module.exports = {
         '^src/(.*)$': '<rootDir>/src/$1'
     },
     collectCoverageFrom: [
-        "**/baseTs/upperFirst.ts",
-        "**/baseTs/camelCase.ts",
+        "src/org/wanxp/dashboard/**/*.ts",
         "!**/node_modules/**",
         "!**/vendor/**"
     ]

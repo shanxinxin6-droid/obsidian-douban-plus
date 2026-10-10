@@ -1,4 +1,30 @@
-# Obsidian Douban Plugin
+# Douban Plus 0.1.0
+
+基于 [Wanxp/obsidian-douban](https://github.com/Wanxp/obsidian-douban) 增加本地豆瓣看板：电影、电视剧、书籍、音乐、游戏、舞台剧与豆瓣日记集中展示，提供网格、列表、搜索、筛选、分组、统计与笔记访问。
+
+自定义模板缺少类型、评分等字段也可使用：新导入笔记自动补充 `douban_` 基础属性。再次同步默认刷新属性并保留正文。旧笔记提供预览补全、字段映射、备份与恢复。
+
+## 安装
+
+1. 从本地 `dist/obsidian-douban-plus-0.1.0.zip` 解压 `obsidian-douban-plus` 文件夹，放入笔记库配置目录的 `plugins` 下（默认 `.obsidian/plugins`）。
+2. 在 Obsidian 社区插件设置中启用 **Douban Plus**，点击左侧“打开豆瓣看板”，或执行同名命令。
+3. 首次使用可“导入原配置”，检查模板、路径和字段后确认，并在 Plus 中重新登录。
+
+最低声明版本 Obsidian 1.4.4；已在桌面 1.14.4 验证基础看板及迁移。最低版本、移动端与真实账户同步尚待验收。两个插件允许同时安装，执行同步时建议只启用一个。默认关闭强制覆盖；开启该选项会重新生成正文。
+
+## 开发与交付
+
+使用 Node.js 24，执行 `npm ci`、`npm run test:unit`、`npm run package:plugin`。`npm run deploy:dev` 创建独立测试库并部署。开发分支 `feature/douban-dashboard` 保留上游历史，仅本地开发，未推送或发布。
+
+- [开发与属性说明](docs/DEVELOPMENT.md)
+- [迁移指南](docs/MIGRATION.md)
+- [测试报告与已知限制](docs/TEST_REPORT.md)
+
+许可证沿用根目录 GPLv3 `License`，保留原作者声明。下面保留上游文档供参考；其中版本、下载和问题链接指向原插件。
+
+---
+
+# 上游 Obsidian Douban Plugin 文档
 
 <p align="center">    
     <a href="https://github.com/Wanxp/obsidian-douban/releases/latest">    

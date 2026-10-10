@@ -374,8 +374,8 @@ ${syncStatus.getHandle() == 0? '...' : i18nHelper.getMessage('110042') + ':' + T
 
 	showForceUpdateConfig(containerEl: HTMLElement, config: SyncConfig, disable:boolean) {
 		new Setting(containerEl)
-			.setName(i18nHelper.getMessage('110031'))
-			.setDesc(i18nHelper.getMessage('500110'))
+			.setName('高级：强制覆盖正文')
+			.setDesc('仅对已关联且没有冲突的笔记重新套用模板。会覆盖自己的正文，默认关闭。')
 			.addToggle((toggleComponent) => {
 				toggleComponent
 					// .setTooltip(i18nHelper.getMessage('121403'))
@@ -456,8 +456,8 @@ ${syncStatus.getHandle() == 0? '...' : i18nHelper.getMessage('110042') + ':' + T
 
 	showUpdateAllConfig(containerEl: HTMLElement, config: SyncConfig, disable:boolean) {
 		new Setting(containerEl)
-			.setName(i18nHelper.getMessage('110039'))
-			.setDesc(i18nHelper.getMessage('110040'))
+			.setName('保留增量同步历史')
+			.setDesc('所选范围内，新条目使用模板创建，已有条目刷新属性。历史记录不会阻止已有属性更新；关闭会重置本次范围的同步历史。')
 			.addToggle((toggleComponent) => {
 				toggleComponent
 					.setTooltip(i18nHelper.getMessage('110040'))

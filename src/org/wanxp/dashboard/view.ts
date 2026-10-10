@@ -1,9 +1,14 @@
-import {ItemView, Menu, Notice, setIcon, TFile, WorkspaceLeaf} from 'obsidian';
+import {addIcon, ItemView, Menu, Notice, setIcon, TFile, WorkspaceLeaf} from 'obsidian';
 import type DoubanPlugin from '../main';
 import {DashboardItem, DashboardOptions, DEFAULT_OPTIONS, queryItems, resetDashboardFilters, STATE_NAMES, stateLabel, timelineGroups, TYPE_NAMES} from './model';
 import {ConfirmModal, MigrationModal, openConfigImport} from './modals';
+import {resolveLocalCover} from './covers';
 
 export const DASHBOARD_VIEW='douban-plus-dashboard';
+const COVER_VIEW_ICON='douban-plus-cover-view';
+export function registerDashboardIcons():void {
+  addIcon(COVER_VIEW_ICON,'<g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="13" width="22" height="74" rx="4"/><rect x="39" y="13" width="22" height="74" rx="4"/><rect x="69" y="13" width="22" height="74" rx="4"/><path d="M10 69h20M40 69h20M70 69h20"/></g>');
+}
 const TYPE_ICONS={movie:'film',teleplay:'tv',book:'book-open',music:'music',game:'gamepad-2',theater:'drama',note:'notebook-pen',unknown:'library'};
 
 export default class DashboardView extends ItemView {
@@ -88,7 +93,7 @@ export default class DashboardView extends ItemView {
   private get options():DashboardOptions{return this.plugin.dashboardSettings.options;}
   private openLayoutMenu():void {
     const menu=new Menu();
-    for(const [view,label,icon] of [['grid','卡片','layout-grid'],['cover','封面视图','image'],['timeline','时间线','git-commit-vertical']] as const){
+    for(const [view,label,icon] of [['grid','卡片视图','layout-grid'],['cover','封面视图',COVER_VIEW_ICON],['timeline','时间线视图','git-commit-vertical']] as const){
       menu.addItem(item=>item.setTitle(label).setIcon(icon).setChecked(this.options.view===view).onClick(()=>{
         void this.switchLayout(view).catch(e=>new Notice(String(e.message || e)));
       }));
@@ -154,8 +159,8 @@ export default class DashboardView extends ItemView {
     this.metric('check-check',`${items.filter(i=>i.managed).length} 项已关联`,'已补全看板基础属性的条目');
     const active=this.filterCount();this.resetButton.hidden=!active;
     this.filterButton.classList.toggle('is-filtered',active>0);this.filterButton.title=active?`详细筛选 · ${active} 项条件`:'详细筛选';
-    const layoutLabel=`修改布局：${this.options.view==='timeline'?'时间线':this.options.view==='cover'?'封面视图':'卡片'}`;
-    this.layoutButton.setAttribute('aria-label',layoutLabel);this.layoutButton.title=layoutLabel;setIcon(this.layoutButton,this.options.view==='timeline'?'git-commit-vertical':this.options.view==='cover'?'image':'layout-grid');
+    const layoutLabel=`修改布局：${this.options.view==='timeline'?'时间线视图':this.options.view==='cover'?'封面视图':'卡片视图'}`;
+    this.layoutButton.setAttribute('aria-label',layoutLabel);this.layoutButton.title=layoutLabel;setIcon(this.layoutButton,this.options.view==='timeline'?'git-commit-vertical':this.options.view==='cover'?COVER_VIEW_ICON:'layout-grid');
     this.results.empty();
     if(this.plugin.dashboardIndex.errors.size){const details=this.results.createEl('details');details.createEl('summary',{text:'查看属性读取失败的笔记'});for(const [path,message] of this.plugin.dashboardIndex.errors){details.createEl('p',{text:`${path}：${message}`});this.button(details,'打开笔记',()=>this.openNote(path));}}
     if(!items.length){
@@ -210,7 +215,7 @@ export default class DashboardView extends ItemView {
     const fallback=cover.createDiv({cls:'douban-plus-cover-fallback'});setIcon(fallback,TYPE_ICONS[i.type]);
     let src:string|undefined;
     if(i.cover && /^https?:\/\//i.test(i.cover))src=i.cover;
-    else if(i.cover){const path=i.cover.replace(/^\[\[/,'').replace(/\]\]$/,'');const file=this.app.metadataCache.getFirstLinkpathDest(path,i.files[0]);if(file)src=this.app.vault.getResourcePath(file);}
+    else if(i.cover){const source=this.app.vault.getAbstractFileByPath(i.files[0]);if(source instanceof TFile){const file=resolveLocalCover(this.app,source,i.cover);if(file)src=this.app.vault.getResourcePath(file);}}
     if(src){const image=cover.createEl('img',{attr:{src,alt:i.title,loading:'lazy',referrerpolicy:'no-referrer'}});image.onerror=()=>image.remove();image.onload=()=>fallback.hide();}
     return cover;
   }

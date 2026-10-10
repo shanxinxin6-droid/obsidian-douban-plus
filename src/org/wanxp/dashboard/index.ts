@@ -1,6 +1,7 @@
 import {App, TFile} from 'obsidian';
 import {boundedNumber, DashboardItem, DashboardSettings, dateString, identityKey, normalizeState, normalizeType, parseIdentity} from './model';
 import {Properties, splitNote} from './properties';
+import {localCoverFromNote} from './covers';
 export function itemFromProperties(p: Properties, path: string, modifiedAt: number, settings: DashboardSettings, scoped: boolean): DashboardItem | null {
   const managed = p.douban_source === 'douban';
   const f = settings.fields;
@@ -54,6 +55,7 @@ export default class DashboardIndex {
       const cached = this.app.metadataCache.getFileCache(file)?.frontmatter;
       const p = cached || splitNote(await this.app.vault.cachedRead(file)).properties;
       const record = itemFromProperties(p,path,file.stat.mtime,this.settings(),this.scoped(path));
+      if(record)record.cover=localCoverFromNote(this.app,file,record.cover)?.path || record.cover;
       if (this.revisions.get(path) !== rev) return;
       if (record) this.records.set(path,record); else this.records.delete(path);
       this.errors.delete(path);

@@ -39,7 +39,8 @@ import DashboardIndex, {itemFromProperties} from './dashboard/index';
 import {DashboardItem, DashboardSettings, defaultDashboardSettings, identityKey, normalizeType, parseIdentity} from './dashboard/model';
 import {mergeProperties, propertiesFromSubject, splitNote} from './dashboard/properties';
 import MigrationService from './dashboard/migration';
-import DashboardView, {DASHBOARD_VIEW} from './dashboard/view';
+import DashboardView, {DASHBOARD_VIEW, registerDashboardIcons} from './dashboard/view';
+import {localCoverFromNote} from './dashboard/covers';
 import {MigrationModal, openConfigImport} from './dashboard/modals';
 import {sleepRange} from './utils/TimeUtil';
 
@@ -261,6 +262,7 @@ export default class DoubanPlugin extends Plugin {
 	async onload() {
 		console.log("----douban-plugins-load------")
 		await this.loadSettings();
+		registerDashboardIcons();
 		if (this.settings.statusBar) {
 			this.doubanStatusBar = this.addStatusBarItem();
 		}
@@ -526,7 +528,10 @@ export default class DoubanPlugin extends Plugin {
 			if(checkCancellation&&!this.statusHolder.syncing())throw new Error('同步已取消');
 			const current=itemFromProperties(frontmatter,file.path,file.stat.mtime,this.dashboardSettings,true);
 			if(!current?.managed || current.key!==key)throw new Error('笔记关联发生变化，请重新预览');
-			Object.assign(frontmatter,propertiesFromSubject(subject));
+			const patch=propertiesFromSubject(subject);
+			const localCover=localCoverFromNote(this.app,file,frontmatter.douban_cover);
+			if(localCover)patch.douban_cover=localCover.path;
+			Object.assign(frontmatter,patch);
 		});
 		this.dashboardCounts.updated++;await this.dashboardIndex.update(file);return true;
 	}

@@ -23,6 +23,7 @@ export class DropdownComponent {}
 export class SearchComponent {}
 export class Setting {}
 export const setIcon=():void=>{};
+export const addIcon=jest.fn();
 export function memoryApp(initial:Record<string,string>={}) {
   const contents=new Map(Object.entries(initial));const files=new Map<string,any>(Object.keys(initial).map(p=>[p,new TFile(p)]));
   const backups=new Map<string,string>();

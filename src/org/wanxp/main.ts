@@ -7,7 +7,7 @@ import {
 	SupportType,
 	SyncTypeRecords
 } from "./constant/Constsant";
-import {Editor, Notice, Plugin} from "obsidian";
+import {Editor, Notice, Plugin, TFile} from "obsidian";
 
 import {DEFAULT_SETTINGS} from "./constant/DefaultSettings";
 import {DoubanFuzzySuggester} from "./douban/data/search/DoubanSearchFuzzySuggestModal";
@@ -35,6 +35,13 @@ import SearcherV2 from "./douban/data/search/SearchV2";
 import {SearchPage} from "./douban/data/model/SearchPage";
 import DoubanBatchImportModal from "./douban/component/DoubanBatchImportModal";
 import DoubanUrlUtil from "./utils/DoubanUrlUtil";
+import DashboardIndex, {itemFromProperties} from './dashboard/index';
+import {DashboardItem, DashboardSettings, defaultDashboardSettings, identityKey, normalizeType, parseIdentity} from './dashboard/model';
+import {mergeProperties, propertiesFromSubject, splitNote} from './dashboard/properties';
+import MigrationService from './dashboard/migration';
+import DashboardView, {DASHBOARD_VIEW} from './dashboard/view';
+import {MigrationModal, openConfigImport} from './dashboard/modals';
+import {sleepRange} from './utils/TimeUtil';
 
 export default class DoubanPlugin extends Plugin {
 	public settings: DoubanPluginSetting;
@@ -47,9 +54,18 @@ export default class DoubanPlugin extends Plugin {
 	public statusHolder: GlobalStatusHolder;
 	public onlineData: DoubanPluginOnlineData;
 	public settingTab: DoubanSettingTab;
+	public dashboardIndex: DashboardIndex;
+	public migrationService: MigrationService;
+	public dashboardProgress = '';
+	public dashboardCounts = {created:0, updated:0, skipped:0, failed:0};
+	private dashboardReady: Promise<void> = Promise.resolve();
+	private dashboardOpening: Promise<void>;
+	get dashboardSettings(): DashboardSettings { return this.settings.dashboard; }
 
 
 	async putToObsidian(context: HandleContext, extract: DoubanSubject) {
+		if (context.previewSubject) { context.previewSubject(extract); return; }
+		if (context.action === Action.Sync && !this.statusHolder.syncing()) return;
 		const syncStatus = context.syncStatusHolder && context.syncStatusHolder.syncStatus ? context.syncStatusHolder.syncStatus : null;
 		try {
 
@@ -71,6 +87,16 @@ export default class DoubanPlugin extends Plugin {
 				this.showStatus(i18nHelper.getMessage('140207', syncStatus.getHasHandle(), syncStatus.getTotal(), extract.title));
 			}else {
 				this.showStatus(i18nHelper.getMessage('140204', extract.title));
+			}
+			if (context.mode === SearchHandleMode.FOR_CREATE && !context.syncConfig?.force && this.dashboardIndex) {
+				await this.dashboardReady;
+				const key = identityKey(String(extract.id), normalizeType(extract.type), extract.url);
+				const existing = key && this.dashboardIndex.find(key);
+				if (existing) {
+					const updated = await this.updateDashboardSubject(extract, context.action === Action.Sync);
+					if (syncStatus) { updated ? syncStatus.exists(extract.id,extract.title) : syncStatus.unHandle(extract.id,extract.title); }
+					return;
+				}
 			}
 			const result  = await this.doubanExtractHandler.parseText(extract, context)
 			if (result) {
@@ -107,11 +133,33 @@ export default class DoubanPlugin extends Plugin {
 	}
 
 	async createFile(context: HandleContext, result: HandleResult) {
+		if (context.action === Action.Sync && !this.statusHolder.syncing()) return;
+		await this.dashboardReady;
 		let filePath = result.filePath?result.filePath:DEFAULT_SETTINGS.dataFilePath;
 		filePath = FileUtil.join(filePath, result.fileName);
 		const syncStatus = context.syncStatusHolder && context.syncStatusHolder.syncStatus ? context.syncStatusHolder.syncStatus : null;
 		const {subject} = result;
-		const {content} = result;
+		let content = result.content;
+		const patch = propertiesFromSubject(subject);
+		const existing = this.dashboardIndex.find(identityKey(String(subject.id),normalizeType(subject.type),subject.url));
+		if (existing) {
+			if(existing.files.length !== 1 || !existing.managed) {this.dashboardCounts.skipped++;new Notice('旧笔记或重复关联需要先预览并补全属性');syncStatus?.unHandle(subject.id,subject.title);return;}
+			const file = this.app.vault.getAbstractFileByPath(existing.files[0]);
+			if (!(file instanceof TFile)) throw new Error('关联笔记已移动，请重建索引后重试');
+			await this.app.vault.process(file, text => {
+				if(context.action === Action.Sync && !this.statusHolder.syncing()) throw new Error('同步已取消');
+				const current=splitNote(text).properties;
+				if(identityKey(String(current.douban_id),normalizeType(current.douban_type),current.douban_url)!==existing.key)throw new Error('笔记关联发生变化，请重建索引');
+				return mergeProperties(content,{...current,...splitNote(content).properties,...patch});
+			});
+			syncStatus?.replace(subject.id,subject.title);this.dashboardCounts.updated++;await this.dashboardIndex.update(file);return;
+		}
+		content = mergeProperties(content,patch);
+		const target=this.app.vault.getAbstractFileByPath(`${filePath}.md`);
+		if(target){
+			this.dashboardCounts.skipped++;syncStatus?.unHandle(subject.id,subject.title);
+			new Notice(`${subject.title}：目标笔记已存在，请先关联或补全属性，避免覆盖同名笔记`);return;
+		}
 		if (Action.Sync == context.action) {
 			if (context.syncStatusHolder.syncStatus.syncConfig.force) {
 				const exists:boolean = await this.fileHandler.createOrReplaceNewNoteWithData(filePath, content, context.showAfterCreate);
@@ -127,6 +175,9 @@ export default class DoubanPlugin extends Plugin {
 		}else {
 			await this.fileHandler.createNewNoteWithData(filePath, content, context.showAfterCreate);
 		}
+		const file=this.app.vault.getAbstractFileByPath(`${filePath}.md`);
+		if(file instanceof TFile)await this.dashboardIndex.update(file);
+		this.dashboardCounts.created++;
 	}
 
 	async search(searchTerm: string, searchType: SupportType, context: HandleContext) {
@@ -345,10 +396,27 @@ export default class DoubanPlugin extends Plugin {
 		this.settingTab = new DoubanSettingTab(this.app, this);
 		this.addSettingTab(this.settingTab);
 		this.statusHolder = new GlobalStatusHolder(this.app, this);
+		this.dashboardIndex = new DashboardIndex(this.app,()=>this.dashboardSettings,()=>this.settings.dataFilePath);
+		let indexReady:()=>void;
+		this.dashboardReady=new Promise(resolve=>{indexReady=resolve;});
+		this.migrationService = new MigrationService(this.app,()=>this.dashboardSettings,this.manifest.id);
+		this.registerView(DASHBOARD_VIEW,leaf=>new DashboardView(leaf,this));
+		this.addRibbonIcon('library','打开豆瓣看板',()=>void this.activateDashboard());
+		this.addCommand({id:'open-douban-dashboard',name:'打开豆瓣看板',callback:()=>void this.activateDashboard()});
+		this.addCommand({id:'migrate-douban-notes',name:'预览并补全旧笔记属性',callback:()=>new MigrationModal(this).open()});
+		this.addCommand({id:'import-original-douban-settings',name:'从原豆瓣插件导入配置',callback:()=>void openConfigImport(this).catch(e=>new Notice(e.message))});
+		this.registerEvent(this.app.metadataCache.on('changed',file=>void this.dashboardIndex.update(file)));
+		this.registerEvent(this.app.vault.on('rename',(file,oldPath)=>{this.dashboardIndex.remove(oldPath);if(file instanceof TFile)void this.dashboardIndex.update(file);}));
+		this.registerEvent(this.app.vault.on('delete',file=>this.dashboardIndex.remove(file.path)));
+		this.app.workspace.onLayoutReady(()=>{
+			void this.dashboardIndex.rebuild().catch(e=>new Notice(`索引建立失败：${e.message || e}`)).finally(indexReady);
+		});
 	}
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const defaults=defaultDashboardSettings();const saved=this.settings.dashboard;
+		this.settings.dashboard={...defaults,...saved, options:{...defaults.options,...saved?.options},fields:{...defaults.fields,...saved?.fields}};
 		this.doubanExtractHandler = new DoubanSearchChooseItemHandler(this.app, this);
 		this.fileHandler = new FileHandler(this.app);
 	}
@@ -359,7 +427,9 @@ export default class DoubanPlugin extends Plugin {
 
 
 	async onunload() {
-		if (this.statusHolder.syncStatus) {
+		this.statusHolder?.stopSync();
+		this.dashboardIndex?.dispose();
+		if (this.statusHolder?.syncStatus) {
 			await this.statusHolder.onunload();
 		}
 	}
@@ -385,21 +455,28 @@ export default class DoubanPlugin extends Plugin {
 
 	async sync(context: HandleContext) {
 		const {syncConfig}  = context;
+		this.dashboardCounts={created:0,updated:0,skipped:0,failed:0};
+		this.dashboardProgress='';
 			try {
 			const result:boolean = await this.checkLogin(context);
 			if (!result) {
+				this.dashboardProgress='请在 Douban Plus 设置中重新登录，本地数据已保留';
 				return;
 			}
 			// @ts-ignore
 			new Notice(i18nHelper.getMessage('140301', SyncTypeRecords[syncConfig.syncType]));
 			this.initSyncDefaultSettings(syncConfig);
-			context.syncStatusHolder.initHandledData();
+			await this.dashboardReady;
+			await context.syncStatusHolder.initHandledData();
 			// @ts-ignore
 			this.showStatus(i18nHelper.getMessage('140203', SyncTypeRecords[syncConfig.syncType]));
 			const syncHandler = new SyncHandler(this.app, this, syncConfig, context);
 			await syncHandler.sync();
-			new Notice(i18nHelper.getMessage('140302'));
+			this.dashboardProgress=this.statusHolder.syncCancelled?'同步已取消':`同步完成：新增 ${this.dashboardCounts.created}，属性更新 ${this.dashboardCounts.updated}，跳过 ${this.dashboardCounts.skipped}，失败 ${this.statusHolder.syncStatus.statusHandleMap.get('fail' as any) || 0}`;
+			new Notice(this.dashboardProgress);
 		} catch (e) {
+			this.dashboardProgress=`同步失败：${e.message || e}`;
+			new Notice(this.dashboardProgress);
 			log.error(i18nHelper.getMessage('140206', e.message), e);
 		} finally {
 			await context.plugin.statusHolder.completeSync();
@@ -408,6 +485,68 @@ export default class DoubanPlugin extends Plugin {
 			}
 	}
 
+	async activateDashboard():Promise<void> {
+		if(this.dashboardOpening)return this.dashboardOpening;
+		this.dashboardOpening=(async()=>{
+			await this.dashboardReady;
+			let leaf=this.app.workspace.getLeavesOfType(DASHBOARD_VIEW)[0];
+			if(!leaf){leaf=this.app.workspace.getLeaf('tab');await leaf.setViewState({type:DASHBOARD_VIEW,active:true});}
+			this.app.workspace.revealLeaf(leaf);
+		})().finally(()=>{this.dashboardOpening=undefined;});
+		return this.dashboardOpening;
+	}
+	private dashboardContext():HandleContext {
+		return {plugin:this,mode:SearchHandleMode.FOR_CREATE,settings:this.settings,userComponent:this.userComponent,
+			netFileHandler:this.netFileHandler,showAfterCreate:false,action:Action.Sync,syncStatusHolder:this.statusHolder};
+	}
+	openDashboardSync():void {void this.showSyncModal(this.dashboardContext());}
+	openDashboardSearch():void {const context=this.dashboardContext();context.action=Action.SearchAndCrate;context.showAfterCreate=this.settings.showAfterCreate;void this.getDoubanTextForCreateNewNoteForType(context,this.settings.searchDefaultType);}
+	cancelDashboardTask():void {if(this.statusHolder.syncStarted){this.statusHolder.stopSync();this.dashboardProgress='正在取消，请等待当前请求结束';}}
+	hasDashboardSubject(id:string,type:string):boolean {return !!this.dashboardIndex?.find(identityKey(String(id),normalizeType(type)));}
+	async fetchDashboardSubject(url:string):Promise<DoubanSubject> {
+		const identity=parseIdentity(url);if(!identity)throw new Error('请输入有效的豆瓣条目链接');
+		const context=this.dashboardContext();let subject:DoubanSubject;
+		context.previewSubject=value=>{subject=value;};context.action=Action.SearchAndCrate;
+		await this.doubanExtractHandler.handle({id:identity.id,type:identity.type==='unknown'?'movie':identity.type} as DoubanSubject,context);
+		if(!subject)throw new Error('获取条目失败，请检查登录或网络；本地数据已保留');
+		return subject;
+	}
+	async updateDashboardSubject(subject:DoubanSubject,checkCancellation=false):Promise<boolean> {
+		const key=identityKey(String(subject.id),normalizeType(subject.type),subject.url);
+		const item=this.dashboardIndex.find(key);
+		if(!item || !item.managed || item.files.length!==1){this.dashboardCounts.skipped++;new Notice(`${subject.title}：请先补全旧笔记或处理重复关联`);return false;}
+		const file=this.app.vault.getAbstractFileByPath(item.files[0]);
+		if(!(file instanceof TFile))throw new Error('关联笔记已不存在，请重建索引');
+		// Validate malformed YAML before invoking the public property writer.
+		splitNote(await this.app.vault.read(file));
+		await this.app.fileManager.processFrontMatter(file,frontmatter=>{
+			if(checkCancellation&&!this.statusHolder.syncing())throw new Error('同步已取消');
+			const current=itemFromProperties(frontmatter,file.path,file.stat.mtime,this.dashboardSettings,true);
+			if(!current?.managed || current.key!==key)throw new Error('笔记关联发生变化，请重新预览');
+			Object.assign(frontmatter,propertiesFromSubject(subject));
+		});
+		this.dashboardCounts.updated++;await this.dashboardIndex.update(file);return true;
+	}
+	async refreshDashboardItems(items:DashboardItem[]):Promise<void> {
+		if(this.statusHolder.syncStarted)throw new Error('已有同步任务正在运行');
+		if(!items.length)return;
+		if(!await this.checkLogin(this.dashboardContext()))throw new Error('请先在插件设置中登录豆瓣');
+		const config={syncType:'movie',scope:'all',incrementalUpdate:true,force:false,dataFilePath:this.settings.dataFilePath} as SyncConfig;
+		if(!this.statusHolder.startSync(config))return;
+		this.dashboardCounts={created:0,updated:0,skipped:0,failed:0};this.statusHolder.syncStatus.totalNum(items.length);
+		try {
+			for(const item of items) {
+				if(!this.statusHolder.syncing())break;
+				try {
+					if(!item.managed || item.files.length!==1 || !item.url){this.dashboardCounts.skipped++;}
+					else {const subject=await this.fetchDashboardSubject(item.url);if(!this.statusHolder.syncing())break;await this.updateDashboardSubject(subject,true);}
+				} catch(e){this.dashboardCounts.failed++;this.dashboardProgress=`${item.title}：${e.message || e}`;}
+				this.statusHolder.syncStatus.handled(1);
+				if(this.statusHolder.syncing())await sleepRange(BasicConst.CALL_DOUBAN_DELAY,BasicConst.CALL_DOUBAN_DELAY+BasicConst.CALL_DOUBAN_DELAY_RANGE);
+			}
+			this.dashboardProgress=`${this.statusHolder.syncCancelled?'刷新已取消':'刷新完成'}：更新 ${this.dashboardCounts.updated}，跳过 ${this.dashboardCounts.skipped}，失败 ${this.dashboardCounts.failed}`;
+		}finally{await this.statusHolder.completeSync();}
+	}
 	async checkLogin(context: HandleContext):Promise<boolean> {
 		this.settingsManager.debug('主界面:同步时的登录状态检测');
 		const uc = context.userComponent;

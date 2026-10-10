@@ -12,6 +12,7 @@ import SyncStatusHolder from "../../sync/model/SyncStatusHolder";
 import UserComponent from "../../user/UserComponent";
 
 export default interface HandleContext {
+ previewSubject?: (subject: DoubanSubject) => void;
 	plugin:DoubanPlugin;
 	mode:SearchHandleMode;
 	settings: DoubanPluginSetting;

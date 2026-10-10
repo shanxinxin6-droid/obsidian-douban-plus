@@ -10,6 +10,7 @@ import {SyncHandledData} from "../setting/model/SyncHandledData";
 export default class GlobalStatusHolder {
 	public syncStatus:SyncStatusHolder;
 	public syncStarted:boolean;
+	public syncCancelled = false;
 	public syncStartTime:number;
 
 	private _app:App;
@@ -23,6 +24,7 @@ export default class GlobalStatusHolder {
 
 	public async completeSync() {
 		this.syncStarted = false;
+		this.syncCancelled = false;
 		await this.saveHandledData();
 	}
 
@@ -34,17 +36,18 @@ export default class GlobalStatusHolder {
 			return false;
 		}
 		this.syncStatus = new SyncStatusHolder(syncConfigOut);
+		this.syncCancelled = false;
 		this.syncStarted = true;
 		this.syncStartTime = new Date().getTime();
 		return true;
 	}
 
 	public stopSync() {
-		this.syncStarted = false;
+		this.syncCancelled = true;
 	}
 
 	public syncing() {
-		return this.syncStarted;
+		return this.syncStarted && !this.syncCancelled;
 	}
 
 	public async initHandledData() {

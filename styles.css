@@ -779,3 +779,35 @@ a.obsidian_douban_login_value:hover {
 		justify-content: flex-end;
 	}
 }
+.douban-plus-dashboard { padding: 24px; overflow: auto; }
+.douban-plus-heading h2 { margin: 0 0 8px; font-size: 26px; }
+.douban-plus-heading p, .douban-plus-muted { color: var(--text-muted); }
+.douban-plus-toolbar, .douban-plus-filters { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; align-items: end; }
+.douban-plus-filters label { display: flex; flex-direction: column; gap: 5px; color: var(--text-muted); font-size: 12px; }
+.douban-plus-filters input[type=search] { min-width: 220px; flex: 1; }
+.douban-plus-range { display: flex; align-items: center; gap: 6px; }
+.douban-plus-range input { width: 75px; }
+.douban-plus-status { color: var(--text-muted); min-height: 24px; white-space: pre-wrap; }
+.douban-plus-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 24px; }
+.douban-plus-chip { padding: 5px 10px; border-radius: 20px; background: var(--background-secondary); font-size: 12px; }
+.douban-plus-items { display: grid; gap: 20px; margin-bottom: 24px; }
+.douban-plus-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.douban-plus-card { border: 1px solid var(--background-modifier-border); border-radius: 12px; overflow: hidden; background: var(--background-primary); }
+.douban-plus-cover { position: relative; aspect-ratio: 2 / 3; background: var(--background-secondary); }
+.douban-plus-cover img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+.douban-plus-cover-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
+.douban-plus-cover-fallback svg { width: 48px; height: 48px; }
+.douban-plus-card-body { padding: 14px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.douban-plus-card-body > button:first-child { font-size: 16px; font-weight: 600; text-align: left; padding: 0; height: auto; background: none; border: 0; box-shadow: none; color: var(--text-normal); white-space: normal; margin-bottom: 8px; }
+.douban-plus-card-body a { display: inline-block; margin-top: 8px; }
+.douban-plus-list { grid-template-columns: 1fr; }
+.douban-plus-list .douban-plus-card { display: flex; }
+.douban-plus-list .douban-plus-cover { width: 96px; flex-shrink: 0; }
+.douban-plus-warning { color: var(--text-warning); }
+.douban-plus-empty { padding: 64px 20px; text-align: center; color: var(--text-muted); border: 1px dashed var(--background-modifier-border); border-radius: 12px; }
+.douban-plus-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 50vh; overflow: auto; padding: 12px; background: var(--background-secondary); }
+.douban-plus-migration { width: min(900px, 95vw); }
+.douban-plus-migration-row { padding: 16px 0; border-bottom: 1px solid var(--background-modifier-border); }
+.douban-plus-migration-row > input { width: min(100%, 360px); margin-right: 8px; }
+.douban-plus-migration-row > button { margin: 6px; }
+@media (max-width: 480px) { .douban-plus-dashboard { padding: 12px; } .douban-plus-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); } }

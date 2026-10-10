@@ -4,9 +4,11 @@ import {ArraySetting} from "./ArraySetting";
 import {ScoreSetting} from "./ScoreSetting";
 import PictureBedSetting from "./PictureBedSetting";
 import {SupportType} from "../../../constant/Constsant";
+import {DashboardSettings} from '../../../dashboard/model';
 import {ArrayLengthLimit} from "./ArrayLengthLimit";
 
 export interface DoubanPluginSetting {
+ dashboard?: DashboardSettings;
 	onlineSettingsFileName: string;
 	onlineSettingsGistId: string;
 	movieTemplateFile: string,

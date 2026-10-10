@@ -56,7 +56,7 @@ export class DoubanSyncModal extends Modal {
 
 	private show(contentEl: HTMLElement) {
 		contentEl.empty();
-		if (this.plugin.statusHolder.syncing()) {
+		if (this.plugin.statusHolder.syncStarted) {
 			this.showSyncStatus(contentEl);
 		} else {
 			this.showSyncConfig(contentEl);
@@ -202,6 +202,7 @@ ${syncStatus.getHandle() == 0? '...' : i18nHelper.getMessage('110042') + ':' + T
 		// this.showAttachmentsFileConfig(contentEl, config, disable);
 		this.showUpdateAllConfig(contentEl, config, disable);
 		this.showForceUpdateConfig(contentEl, config, disable);
+		contentEl.createEl('p', {text: 'Douban Plus 会刷新已有条目的看板属性并保留正文。强制覆盖开启后会按模板重新生成正文。'});
 	}
 
 	async onClose() {

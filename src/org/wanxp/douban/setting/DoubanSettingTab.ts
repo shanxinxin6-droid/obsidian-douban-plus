@@ -1,4 +1,5 @@
-import {App, PluginSettingTab,  Setting} from "obsidian";
+import {App, PluginSettingTab,  Setting, Notice} from "obsidian";
+import {MigrationModal, openConfigImport} from '../../dashboard/modals';
 
 import DoubanPlugin from "../../main";
 import SettingsManager from "./SettingsManager";
@@ -31,7 +32,11 @@ export class DoubanSettingTab extends PluginSettingTab {
 	display(): void {
 	  const {containerEl} = this;
 	  containerEl.empty();
-	  containerEl.createEl("h2", {text: 'Obsidian Douban'});
+	  containerEl.createEl("h2", {text: 'Douban Plus'});
+	  new Setting(containerEl).setName('看板与旧笔记').setDesc('插件自动维护 douban_ 基础属性。旧笔记先预览再补全，正文保留。')
+	    .addButton(b=>b.setButtonText('打开看板').onClick(()=>this.plugin.activateDashboard()))
+	    .addButton(b=>b.setButtonText('补全旧笔记').onClick(()=>new MigrationModal(this.plugin).open()))
+	    .addButton(b=>b.setButtonText('导入原配置').onClick(()=>openConfigImport(this.plugin).catch(e=>new Notice(e.message))));
 
 	  // Create tab container
 	  const tabContainer = containerEl.createEl("div", {cls: "obsidian_douban_settings_tab_container"});

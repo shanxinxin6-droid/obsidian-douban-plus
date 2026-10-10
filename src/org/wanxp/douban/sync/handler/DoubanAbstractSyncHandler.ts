@@ -265,7 +265,8 @@ export abstract class DoubanAbstractSyncHandler<T extends DoubanSubject>
 				return;
 			}
 			try {
-				if (syncStatus.shouldSync(item.id)) {
+				// History cannot prove a local note still exists. Fetch selected entries;
+				// the save hook uses the current note identity to choose create or refresh.
 					let subject: DoubanSubject =
 						await this.doubanSubjectLoadHandler.handle(
 							item.id,
@@ -277,10 +278,8 @@ export abstract class DoubanAbstractSyncHandler<T extends DoubanSubject>
 						BasicConst.CALL_DOUBAN_DELAY +
 							BasicConst.CALL_DOUBAN_DELAY_RANGE,
 					);
-				} else {
-					syncStatus.unHandle(item.id, item.title);
-				}
 			} catch (e) {
+				syncStatus.fail(item.id, item.title);
 				log.notice(i18nHelper.getMessage("130120"));
 			}
 		}

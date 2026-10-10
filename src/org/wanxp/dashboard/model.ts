@@ -21,7 +21,7 @@ export interface DashboardOptions {
 export interface DashboardSettings {
   options: DashboardOptions; folders: string[]; fields: Record<string, string>;
 }
-export const DEFAULT_OPTIONS: DashboardOptions = {query:'', type:'all', state:'all', minScore:'', maxScore:'', rating:'all', scoreState:'all', year:'all', yearDimension:'published', view:'grid', group:'none', sort:'recent'};
+export const DEFAULT_OPTIONS: DashboardOptions = {query:'', type:'all', state:'all', minScore:'', maxScore:'', rating:'all', scoreState:'all', year:'all', yearDimension:'published', view:'grid', group:'collection', sort:'recent'};
 export const DEFAULT_FIELDS: Record<string, string> = {id:'doubanId', type:'type', url:'url', title:'title', cover:'image', score:'score', rating:'myRating', state:'myState', publishedDate:'datePublished', collectionDate:'myCollectionDate', tags:'myTags'};
 export const defaultDashboardSettings = (): DashboardSettings => ({options:{...DEFAULT_OPTIONS}, folders:[], fields:{...DEFAULT_FIELDS}});
 

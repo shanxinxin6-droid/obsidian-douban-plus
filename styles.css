@@ -797,13 +797,30 @@ a.obsidian_douban_login_value:hover {
 .douban-plus-metric svg { width: 16px; height: 16px; }
 .douban-plus-dashboard .douban-plus-reset { height: auto; padding: 0; background: none; box-shadow: none; border: 0; color: var(--text-accent); font-size: 12px; }
 .douban-plus-panel { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; margin-bottom: 16px; border: 1px solid var(--background-modifier-border); border-radius: 8px; }
-.douban-plus-filters { align-items: end; }
-.douban-plus-filters label { display: flex; flex-direction: column; gap: 5px; color: var(--text-muted); font-size: 12px; }
-.douban-plus-filters input { width: 100px; }
-.douban-plus-filters select, .douban-plus-filters input { height: 30px; }
-.douban-plus-distribution-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; width: 100%; font-size: 12px; }
-.douban-plus-distribution-row > span:first-child { min-width: 64px; }
-.douban-plus-chip { padding: 3px 8px; border-radius: 20px; background: var(--background-secondary); }
+.douban-plus-filters { display: block; max-width: 1420px; padding: 16px 18px 18px; border-radius: 12px; background: var(--background-secondary); }
+.douban-plus-filter-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+.douban-plus-filter-header > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+.douban-plus-filter-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.douban-plus-filter-header > div > span { color: var(--text-muted); font-size: 12px; }
+.douban-plus-filter-sections { display: flex; flex-wrap: wrap; gap: 20px 28px; container-type: inline-size; }
+.douban-plus-filter-section { flex: 1 1 230px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.douban-plus-filter-section:first-child { flex: 2 1 410px; }
+.douban-plus-filter-section legend { display: flex; align-items: center; gap: 6px; padding: 0; margin-bottom: 12px; color: var(--text-normal); font-size: 12px; font-weight: 600; }
+.douban-plus-filter-section legend > span:first-child { display: inline-flex; color: var(--text-accent); }
+.douban-plus-filter-section legend svg { width: 14px; height: 14px; }
+.douban-plus-filter-fields { display: grid; gap: 12px; align-items: start; }
+.douban-plus-score-fields { grid-template-columns: minmax(150px, 1.3fr) repeat(2, minmax(100px, 1fr)); }
+.douban-plus-year-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.douban-plus-filters label, .douban-plus-score-range { display: flex; flex-direction: column; gap: 7px; min-width: 0; color: var(--text-muted); font-size: 12px; }
+.douban-plus-filters select, .douban-plus-filters input { width: 100%; min-width: 0; height: 34px; padding: 0 10px; font-size: 13px; background: var(--background-primary); }
+.douban-plus-range-inputs { display: flex; align-items: center; gap: 6px; }
+.douban-plus-range-inputs input { flex: 1; width: 0; padding: 0 6px; }
+.douban-plus-range-unit { flex-shrink: 0; font-size: 11px; }
+.douban-plus-filter-hint { color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+@container (max-width: 460px) {
+  .douban-plus-score-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .douban-plus-score-range { grid-column: 1 / -1; }
+}
 .douban-plus-status { color: var(--text-muted); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 12px; margin-bottom: 16px; border-left: 2px solid var(--interactive-accent); background: var(--background-secondary); }
 .douban-plus-results { max-width: 1420px; }
 .douban-plus-group { margin-bottom: 22px; }

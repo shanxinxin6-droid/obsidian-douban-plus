@@ -17,6 +17,8 @@ it('merges old settings and restores saved dashboard choices without losing defa
   plugin.loadData=async()=>({dataFilePath:'中文 空格',dashboard:{options:{view:'list',query:'标签'},fields:{id:'自定义ID'}}});
   await plugin.loadSettings();expect(plugin.settings.dataFilePath).toBe('中文 空格');expect(plugin.dashboardSettings.options).toEqual({...DEFAULT_OPTIONS,view:'list',query:'标签'});expect(plugin.dashboardSettings.fields.id).toBe('自定义ID');expect(plugin.dashboardSettings.fields.url).toBe('url');
   plugin.loadData=async()=>({});await plugin.loadSettings();expect(plugin.dashboardSettings.options).toEqual(DEFAULT_OPTIONS);
+  plugin.loadData=async()=>({dashboard:{options:{view:'timeline',timelineYear:'2026',year:'2024',group:'type',sort:'score'}}});
+  await plugin.loadSettings();expect(plugin.dashboardSettings.options).toMatchObject({view:'timeline',timelineYear:'2026',year:'2024',group:'type',sort:'score'});
 });
 
 it('coalesces concurrent dashboard opens and reuses the existing main-workspace leaf',async()=>{

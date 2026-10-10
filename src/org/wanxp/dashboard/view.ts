@@ -1,6 +1,6 @@
-import {ItemView, Notice, setIcon, TFile, WorkspaceLeaf} from 'obsidian';
+import {ItemView, Menu, Notice, setIcon, TFile, WorkspaceLeaf} from 'obsidian';
 import type DoubanPlugin from '../main';
-import {DashboardItem, DashboardOptions, DEFAULT_OPTIONS, queryItems, STATE_NAMES, stateLabel, TYPE_NAMES} from './model';
+import {DashboardItem, DashboardOptions, DEFAULT_OPTIONS, queryItems, resetDashboardFilters, STATE_NAMES, stateLabel, timelineGroups, TYPE_NAMES} from './model';
 import {ConfirmModal, MigrationModal, openConfigImport} from './modals';
 
 export const DASHBOARD_VIEW='douban-plus-dashboard';
@@ -25,11 +25,11 @@ export default class DashboardView extends ItemView {
     const quick=toolbar.createDiv({cls:'douban-plus-quick-filters'});
     this.select(quick,'类型','type',{all:'全部类型',...TYPE_NAMES},false);
     this.select(quick,'状态','state',{all:'全部状态',...STATE_NAMES},false);
-    this.select(quick,'分组','group',{collection:'按收藏年份',published:'按发布年份',type:'按类型',state:'按状态',none:'不分组'},false);
+    if(this.options.view!=='timeline')this.select(quick,'分组','group',{collection:'按收藏年份',published:'按发布年份',type:'按类型',state:'按状态',none:'不分组'},false);
     const actions=toolbar.createDiv({cls:'douban-plus-actions'});
     this.iconButton(actions,'同步','refresh-cw',()=>this.plugin.openDashboardSync()).addClass('mod-cta');
     this.iconButton(actions,'豆瓣搜索 / 导入','search',()=>this.plugin.openDashboardSearch());
-    this.layoutButton=this.iconButton(actions,'切换为列表','list',()=>this.change('view',this.options.view==='grid'?'list':'grid'));
+    this.layoutButton=this.iconButton(actions,'修改布局','layout-grid',()=>this.openLayoutMenu());this.layoutButton.setAttribute('aria-haspopup','menu');
     this.filterButton=this.iconButton(actions,'详细筛选','sliders-horizontal',()=>this.togglePanel(this.advanced,this.filterButton));
     this.filterButton.setAttribute('aria-expanded','false');
     const toolsButton=this.iconButton(actions,'管理工具','settings',()=>this.togglePanel(this.tools,toolsButton));
@@ -53,11 +53,18 @@ export default class DashboardView extends ItemView {
     this.select(scores,'豆瓣评分状态','scoreState',{all:'全部评分',scored:'已有评分',unknown:'未评分'});
     this.select(scores,'个人评分','rating',{all:'全部个人评分',unknown:'未评分','1':'1 星','2':'2 星','3':'3 星','4':'4 星','5':'5 星'});
     const dates=this.filterSection(filterSections,'年份','calendar-days','douban-plus-year-fields');
-    this.select(dates,'年份依据','yearDimension',{published:'发布年份',collection:'收藏年份'});
-    this.select(dates,'年份','year',{all:'全部年份',unknown:'年份未知'});
+    if(this.options.view==='timeline'){
+      const basis=dates.createDiv({cls:'douban-plus-score-range'});basis.createSpan({text:'年份依据'});basis.createSpan({text:'收藏年份',cls:'douban-plus-fixed-value'});
+    }else this.select(dates,'年份依据','yearDimension',{published:'发布年份',collection:'收藏年份'});
+    this.select(dates,'年份',this.options.view==='timeline'?'timelineYear':'year',{all:'全部年份',unknown:'年份未知'});
     const ordering=this.filterSection(filterSections,'排序','arrow-down-wide-narrow','douban-plus-sort-fields');
-    this.select(ordering,'排序','sort',{recent:'最近收藏 / 文件修改',title:'标题',score:'豆瓣评分',rating:'个人评分',year:'年份'});
-    ordering.createSpan({text:'无收藏日期时，最近收藏按文件修改时间排序。',cls:'douban-plus-filter-hint'});
+    if(this.options.view==='timeline'){
+      ordering.createSpan({text:'收藏日期 · 从新到旧',cls:'douban-plus-fixed-value'});
+      ordering.createSpan({text:'日期未知的收藏放在末尾；同一天的条目集中展示。',cls:'douban-plus-filter-hint'});
+    }else{
+      this.select(ordering,'排序','sort',{recent:'最近收藏 / 文件修改',title:'标题',score:'豆瓣评分',rating:'个人评分',year:'年份'});
+      ordering.createSpan({text:'无收藏日期时，最近收藏按文件修改时间排序。',cls:'douban-plus-filter-hint'});
+    }
     this.tools=el.createDiv({cls:'douban-plus-panel douban-plus-tools',attr:{'aria-label':'管理工具'}});this.tools.hidden=true;
     this.button(this.tools,'刷新属性',()=>{
       const items=queryItems(this.plugin.dashboardIndex.items(),this.options);
@@ -69,8 +76,7 @@ export default class DashboardView extends ItemView {
     const summary=el.createDiv({cls:'douban-plus-summary'});
     this.stats=summary.createDiv({cls:'douban-plus-stats',attr:{'aria-label':'当前结果概览'}});
     this.resetButton=this.button(summary,'重置筛选',async()=>{
-      const {view,group,sort}=this.options;
-      this.plugin.dashboardSettings.options={...DEFAULT_OPTIONS,view,group,sort};
+      this.plugin.dashboardSettings.options=resetDashboardFilters(this.options);
       await this.plugin.saveSettings();await this.onClose();await this.onOpen();
     });this.resetButton.addClass('douban-plus-reset');
     this.status=el.createDiv({cls:'douban-plus-status',attr:{role:'status','aria-live':'polite'}});
@@ -80,6 +86,19 @@ export default class DashboardView extends ItemView {
   }
 
   private get options():DashboardOptions{return this.plugin.dashboardSettings.options;}
+  private openLayoutMenu():void {
+    const menu=new Menu();
+    for(const [view,label,icon] of [['grid','卡片','layout-grid'],['list','列表','list'],['timeline','时间线','git-commit-vertical']] as const){
+      menu.addItem(item=>item.setTitle(label).setIcon(icon).setChecked(this.options.view===view).onClick(()=>{
+        void this.switchLayout(view).catch(e=>new Notice(String(e.message || e)));
+      }));
+    }
+    const rect=this.layoutButton.getBoundingClientRect();menu.showAtPosition({x:rect.left,y:rect.bottom+6});
+  }
+  private async switchLayout(view:DashboardOptions['view']):Promise<void> {
+    if(this.options.view===view)return;
+    this.options.view=view;this.limit=100;await this.plugin.saveSettings();await this.onClose();await this.onOpen();this.layoutButton.focus();
+  }
   private filterSection(parent:HTMLElement,label:string,icon:string,cls:string):HTMLElement {
     const group=parent.createEl('fieldset',{cls:'douban-plus-filter-section'});
     const legend=group.createEl('legend');setIcon(legend.createSpan(),icon);legend.createSpan({text:label});
@@ -92,7 +111,7 @@ export default class DashboardView extends ItemView {
     const wrapper=el.createEl('label');if(showLabel)wrapper.createSpan({text:label});
     const select=wrapper.createEl('select',{attr:{'aria-label':label,title:label}});
     for(const [value,text] of Object.entries(values))select.createEl('option',{value,text});select.value=String(this.options[key]);
-    if(key==='year')this.yearSelect=select;
+    if(key==='year'||key==='timelineYear')this.yearSelect=select;
     select.onchange=()=>this.change(key,select.value as any);
   }
   private button(el:HTMLElement,label:string,action:()=>unknown):HTMLButtonElement {
@@ -108,7 +127,8 @@ export default class DashboardView extends ItemView {
     panel.hidden=!panel.hidden;button.setAttribute('aria-expanded',String(!panel.hidden));
   }
   private filterCount():number {
-    return (['query','type','state','minScore','maxScore','rating','scoreState','year'] as const).filter(key=>this.options[key]!==DEFAULT_OPTIONS[key]).length;
+    const shared=(['query','type','state','minScore','maxScore','rating','scoreState'] as const).filter(key=>this.options[key]!==DEFAULT_OPTIONS[key]).length;
+    return shared+Number((this.options.view==='timeline'?this.options.timelineYear:this.options.year)!=='all');
   }
   private renderStatus():void {
     if(!this.status)return;
@@ -121,8 +141,8 @@ export default class DashboardView extends ItemView {
   }
   private renderResults():void {
     const all=this.plugin.dashboardIndex.items();
-    const years=new Set<string>();for(const i of all)for(const date of [i.publishedDate,i.collectionDate])if(date)years.add(date.slice(0,4));
-    const selected=this.options.year;this.yearSelect.empty();
+    const years=new Set<string>();for(const i of all)for(const date of this.options.view==='timeline'?[i.collectionDate]:[i.publishedDate,i.collectionDate])if(date)years.add(date.slice(0,4));
+    const selected=this.options.view==='timeline'?this.options.timelineYear:this.options.year;this.yearSelect.empty();
     for(const [value,text] of [['all','全部年份'],['unknown','年份未知'],...[...years].sort().reverse().map(y=>[y,y])])this.yearSelect.createEl('option',{value,text});
     // Retain the saved selection even if its last matching note was removed.
     if(!Array.from(this.yearSelect.options).some(o=>o.value===selected))this.yearSelect.createEl('option',{value:selected,text:selected});
@@ -134,8 +154,8 @@ export default class DashboardView extends ItemView {
     this.metric('check-check',`${items.filter(i=>i.managed).length} 项已关联`,'已补全看板基础属性的条目');
     const active=this.filterCount();this.resetButton.hidden=!active;
     this.filterButton.classList.toggle('is-filtered',active>0);this.filterButton.title=active?`详细筛选 · ${active} 项条件`:'详细筛选';
-    const layoutLabel=this.options.view==='grid'?'切换为列表':'切换为卡片';
-    this.layoutButton.setAttribute('aria-label',layoutLabel);this.layoutButton.title=layoutLabel;setIcon(this.layoutButton,this.options.view==='grid'?'list':'layout-grid');
+    const layoutLabel=`修改布局：${this.options.view==='timeline'?'时间线':this.options.view==='list'?'列表':'卡片'}`;
+    this.layoutButton.setAttribute('aria-label',layoutLabel);this.layoutButton.title=layoutLabel;setIcon(this.layoutButton,this.options.view==='timeline'?'git-commit-vertical':this.options.view==='list'?'list':'layout-grid');
     this.results.empty();
     if(this.plugin.dashboardIndex.errors.size){const details=this.results.createEl('details');details.createEl('summary',{text:'查看属性读取失败的笔记'});for(const [path,message] of this.plugin.dashboardIndex.errors){details.createEl('p',{text:`${path}：${message}`});this.button(details,'打开笔记',()=>this.openNote(path));}}
     if(!items.length){
@@ -144,6 +164,7 @@ export default class DashboardView extends ItemView {
       empty.createEl('p',{text:active?'试试其他关键词，或重置筛选条件。':'搜索并导入豆瓣条目，或在管理工具中补全旧笔记。'});
       if(!active)this.button(empty,'豆瓣搜索 / 导入',()=>this.plugin.openDashboardSearch());return;
     }
+    if(this.options.view==='timeline'){this.renderTimeline(items);this.renderMore(items);return;}
     const groups=new Map<string,DashboardItem[]>();
     for(const i of items){
       const group=this.options.group;const label=group==='type'?TYPE_NAMES[i.type]:group==='state'?STATE_NAMES[i.state]:group==='published'?(i.publishedDate?.slice(0,4)||'发布年份未知'):group==='collection'?(i.collectionDate?.slice(0,4)||'收藏年份未知'):'';
@@ -158,7 +179,28 @@ export default class DashboardView extends ItemView {
       const container=section.createDiv({cls:`douban-plus-items douban-plus-${this.options.view}`});
       for(const i of group.slice(0,remaining))this.card(container,i);remaining-=group.length;
     }
+    this.renderMore(items);
+  }
+  private renderMore(items:DashboardItem[]):void {
     if(items.length>this.limit)this.button(this.results,`显示更多（已展示 ${Math.min(this.limit,items.length)} / ${items.length}）`,()=>{this.limit+=100;this.renderResults();}).addClass('douban-plus-load-more');
+  }
+  private renderTimeline(items:DashboardItem[]):void {
+    const timeline=this.results.createDiv({cls:'douban-plus-timeline',attr:{'aria-label':'收藏时间线'}});
+    timeline.createDiv({text:'收藏时间线 · 按收藏日期从新到旧',cls:'douban-plus-timeline-intro'});
+    for(const month of timelineGroups(items,this.limit)){
+      const section=timeline.createEl('section',{cls:'douban-plus-timeline-month'});
+      const heading=section.createEl('h3',{cls:'douban-plus-group-heading'});
+      heading.createSpan({text:month.month?`${month.month.slice(0,4)} 年 ${Number(month.month.slice(5))} 月`:'收藏日期未知'});
+      heading.createSpan({text:`${month.count} 个条目`,cls:'douban-plus-group-count'});
+      const days=section.createEl('ol',{cls:'douban-plus-timeline-days'});
+      for(const day of month.days){
+        const row=days.createEl('li',{cls:'douban-plus-timeline-day'});
+        const stamp=row.createDiv({cls:'douban-plus-timeline-stamp'});
+        if(day.date){const time=stamp.createEl('time',{attr:{datetime:day.date,'aria-label':day.date}});time.createSpan({text:String(Number(day.date.slice(8))),cls:'douban-plus-timeline-date'});time.createSpan({text:'日'});}
+        else stamp.createSpan({text:'未知',cls:'douban-plus-muted'});
+        const cards=row.createDiv({cls:'douban-plus-timeline-cards'});for(const item of day.items)this.card(cards,item);
+      }
+    }
   }
   private async openNote(path:string):Promise<void> {
     const file=this.app.vault.getAbstractFileByPath(path);if(!(file instanceof TFile))throw new Error('关联笔记不存在，请重建索引');await this.app.workspace.getLeaf(true).openFile(file);

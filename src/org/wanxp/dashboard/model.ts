@@ -15,15 +15,19 @@ export interface DashboardItem {
 }
 export interface DashboardOptions {
   query: string; type: string; state: string; minScore: string; maxScore: string; rating: string; scoreState: 'all' | 'scored' | 'unknown';
-  year: string; yearDimension: 'published' | 'collection'; view: 'grid' | 'list';
+  year: string; timelineYear: string; yearDimension: 'published' | 'collection'; view: 'grid' | 'list' | 'timeline';
   group: 'none' | 'type' | 'state' | 'published' | 'collection'; sort: 'recent' | 'title' | 'score' | 'rating' | 'year';
 }
 export interface DashboardSettings {
   options: DashboardOptions; folders: string[]; fields: Record<string, string>;
 }
-export const DEFAULT_OPTIONS: DashboardOptions = {query:'', type:'all', state:'all', minScore:'', maxScore:'', rating:'all', scoreState:'all', year:'all', yearDimension:'published', view:'grid', group:'collection', sort:'recent'};
+export const DEFAULT_OPTIONS: DashboardOptions = {query:'', type:'all', state:'all', minScore:'', maxScore:'', rating:'all', scoreState:'all', year:'all', timelineYear:'all', yearDimension:'published', view:'grid', group:'collection', sort:'recent'};
 export const DEFAULT_FIELDS: Record<string, string> = {id:'doubanId', type:'type', url:'url', title:'title', cover:'image', score:'score', rating:'myRating', state:'myState', publishedDate:'datePublished', collectionDate:'myCollectionDate', tags:'myTags'};
 export const defaultDashboardSettings = (): DashboardSettings => ({options:{...DEFAULT_OPTIONS}, folders:[], fields:{...DEFAULT_FIELDS}});
+export function resetDashboardFilters(options:DashboardOptions):DashboardOptions {
+  return {...DEFAULT_OPTIONS,view:options.view,group:options.group,sort:options.sort,
+    ...(options.view==='timeline'?{year:options.year,yearDimension:options.yearDimension}:{timelineYear:options.timelineYear})};
+}
 
 export function normalizeType(value: unknown): ItemType {
   const raw = String(value ?? '').trim();
@@ -82,22 +86,38 @@ export function identityKey(id: string, type: ItemType, url?: string): string | 
 }
 export function queryItems(items: DashboardItem[], o: DashboardOptions): DashboardItem[] {
   const q = o.query.trim().toLocaleLowerCase();
-  const yearOf = (i: DashboardItem) => (o.yearDimension === 'published' ? i.publishedDate : i.collectionDate)?.slice(0,4);
+  const timeline=o.view==='timeline';const year=timeline?(o.timelineYear || 'all'):o.year;
+  const yearOf = (i: DashboardItem) => (timeline || o.yearDimension === 'collection' ? i.collectionDate : i.publishedDate)?.slice(0,4);
   return items.filter(i => (!q || `${i.title} ${i.tags.join(' ')}`.toLocaleLowerCase().includes(q))
     && (o.type === 'all' || i.type === o.type) && (o.state === 'all' || i.state === o.state)
     && (o.scoreState === 'all' || (o.scoreState === 'unknown' ? i.score === undefined : i.score !== undefined))
     && (!o.minScore || (i.score !== undefined && i.score >= Number(o.minScore)))
     && (!o.maxScore || (i.score !== undefined && i.score <= Number(o.maxScore)))
     && (o.rating === 'all' || (o.rating === 'unknown' ? i.rating === undefined : i.rating === Number(o.rating)))
-    && (o.year === 'all' || (o.year === 'unknown' ? !yearOf(i) : yearOf(i) === o.year)))
+    && (year === 'all' || (year === 'unknown' ? !yearOf(i) : yearOf(i) === year)))
     .sort((a,b) => {
       let diff = 0;
-      if (o.sort === 'title') diff = a.title.localeCompare(b.title,'zh-CN');
+      if(timeline)diff=(b.collectionDate || '').localeCompare(a.collectionDate || '');
+      else if (o.sort === 'title') diff = a.title.localeCompare(b.title,'zh-CN');
       else if (o.sort === 'score' || o.sort === 'rating') diff = (b[o.sort] ?? -1) - (a[o.sort] ?? -1);
       else if (o.sort === 'year') diff = (yearOf(b) || '').localeCompare(yearOf(a) || '');
       else diff = (b.collectionDate ? Date.parse(b.collectionDate) : b.modifiedAt) - (a.collectionDate ? Date.parse(a.collectionDate) : a.modifiedAt);
       return diff || a.key.localeCompare(b.key);
     });
+}
+export interface TimelineDay {date?:string;count:number;items:DashboardItem[];}
+export interface TimelineMonth {month?:string;count:number;days:TimelineDay[];}
+export function timelineGroups(items:DashboardItem[],limit=100):TimelineMonth[] {
+  const ordered=[...items].sort((a,b)=>(b.collectionDate || '').localeCompare(a.collectionDate || '') || a.key.localeCompare(b.key));
+  const months=new Map<string,TimelineMonth>();const days=new Map<string,TimelineDay>();
+  for(let index=0;index<ordered.length;index++){
+    const item=ordered[index];const date=item.collectionDate;const month=date?.slice(0,7);const monthKey=month || 'unknown';const dayKey=date || 'unknown';
+    if(!months.has(monthKey))months.set(monthKey,{month,count:0,days:[]});
+    const bucket=months.get(monthKey);bucket.count++;
+    if(!days.has(dayKey)){const day:TimelineDay={date,count:0,items:[]};days.set(dayKey,day);bucket.days.push(day);}
+    const day=days.get(dayKey);day.count++;if(index<limit)day.items.push(item);
+  }
+  return [...months.values()].map(month=>({...month,days:month.days.filter(day=>day.items.length)})).filter(month=>month.days.length);
 }
 export function summarize(items: DashboardItem[]): {types: Record<string,number>; states: Record<string,number>; unknown: Record<string,number>} {
   const types: Record<string,number> = {}; const states: Record<string,number> = {};

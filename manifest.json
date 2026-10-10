@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-douban-plugin",
-	"name": "Douban",
-	"version": "2.5.0",
-	"minAppVersion": "0.12.0",
-	"description": "This is a plugin that can import movies/books/musics/notes/games info data from Douban for Obsidian .",
-	"author": "Wanxp",
-	"authorUrl": "https://obsidian-douban.wxp.hk",
-	"isDesktopOnly": false
+  "id": "obsidian-douban-plus",
+  "name": "Douban Plus",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.4",
+  "description": "Browse your Douban collection offline, sync metadata safely, and keep custom templates.",
+  "author": "Wanxp; Douban Plus contributors",
+  "authorUrl": "https://obsidian-douban.wxp.hk",
+  "isDesktopOnly": false
 }

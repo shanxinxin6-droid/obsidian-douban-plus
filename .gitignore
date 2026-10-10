@@ -22,3 +22,10 @@ data.json
 .DS_Store
 doc/.vitepress/dist
 doc/.vitepress/cache
+
+# Douban Plus development data
+.references/
+.dev-vault/
+dist/
+coverage/
+test-results/

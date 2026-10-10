@@ -53,8 +53,13 @@ export default abstract class DoubanAbstractLoadHandler<T extends DoubanSubject>
 		this.parseVariable(template, variableMap, extract, context);
 		await this.saveImage(extract, context, variableMap);
 
-		const frontMatterStart: number = template.indexOf(BasicConst.YAML_FRONT_MATTER_SYMBOL, 0);
-		const frontMatterEnd: number = template.indexOf(BasicConst.YAML_FRONT_MATTER_SYMBOL, frontMatterStart + 1);
+		// Only the leading block is YAML. Body separators stay ordinary template text.
+		const opening = /^(?:\uFEFF)?---[ \t]*\r?\n/.exec(template);
+		const closing = /^---[ \t]*\r?$/gm;
+		closing.lastIndex = opening?.[0].length || template.length;
+		const end = opening ? closing.exec(template) : null;
+		const frontMatterStart = opening ? (template.startsWith('\uFEFF') ? 1 : 0) : -1;
+		const frontMatterEnd = end?.index ?? -1;
 		let frontMatter = '';
 		let frontMatterBefore = '';
 		let frontMatterAfter = '';

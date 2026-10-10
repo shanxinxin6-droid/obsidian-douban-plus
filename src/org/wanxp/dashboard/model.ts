@@ -15,7 +15,7 @@ export interface DashboardItem {
 }
 export interface DashboardOptions {
   query: string; type: string; state: string; minScore: string; maxScore: string; rating: string; scoreState: 'all' | 'scored' | 'unknown';
-  year: string; timelineYear: string; yearDimension: 'published' | 'collection'; view: 'grid' | 'list' | 'timeline';
+  year: string; timelineYear: string; yearDimension: 'published' | 'collection'; view: 'grid' | 'cover' | 'timeline';
   group: 'none' | 'type' | 'state' | 'published' | 'collection'; sort: 'recent' | 'title' | 'score' | 'rating' | 'year';
 }
 export interface DashboardSettings {

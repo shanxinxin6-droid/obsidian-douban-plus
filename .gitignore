@@ -1,5 +1,5 @@
 # vscode
-.vscode 
+.vscode
 
 # Intellij
 *.iml
@@ -29,3 +29,4 @@ doc/.vitepress/cache
 dist/
 coverage/
 test-results/
+.cache/

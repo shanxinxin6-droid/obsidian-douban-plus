@@ -40,7 +40,7 @@ describe('collection timeline',()=>{
   it('resets only the active layout year filter and preserves inactive layout choices',()=>{
     const saved={...options,year:'2024',yearDimension:'collection' as const,timelineYear:'2026',group:'type' as const,sort:'rating' as const,query:'test'};
     const reset=resetDashboardFilters(saved);expect(reset.year).toBe('2024');expect(reset.yearDimension).toBe('collection');expect(reset.timelineYear).toBe('all');expect(reset.query).toBe('');expect(reset.group).toBe('type');expect(reset.sort).toBe('rating');
-    const normal=resetDashboardFilters({...saved,view:'list'});expect(normal.year).toBe('all');expect(normal.timelineYear).toBe('2026');
+    const normal=resetDashboardFilters({...saved,view:'cover'});expect(normal.year).toBe('all');expect(normal.timelineYear).toBe('2026');
   });
   it('has no groups for empty filtered results',()=>expect(timelineGroups([])).toEqual([]));
 });

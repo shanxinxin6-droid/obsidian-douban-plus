@@ -88,7 +88,7 @@ export default class DashboardView extends ItemView {
   private get options():DashboardOptions{return this.plugin.dashboardSettings.options;}
   private openLayoutMenu():void {
     const menu=new Menu();
-    for(const [view,label,icon] of [['grid','卡片','layout-grid'],['list','列表','list'],['timeline','时间线','git-commit-vertical']] as const){
+    for(const [view,label,icon] of [['grid','卡片','layout-grid'],['cover','封面视图','image'],['timeline','时间线','git-commit-vertical']] as const){
       menu.addItem(item=>item.setTitle(label).setIcon(icon).setChecked(this.options.view===view).onClick(()=>{
         void this.switchLayout(view).catch(e=>new Notice(String(e.message || e)));
       }));
@@ -154,8 +154,8 @@ export default class DashboardView extends ItemView {
     this.metric('check-check',`${items.filter(i=>i.managed).length} 项已关联`,'已补全看板基础属性的条目');
     const active=this.filterCount();this.resetButton.hidden=!active;
     this.filterButton.classList.toggle('is-filtered',active>0);this.filterButton.title=active?`详细筛选 · ${active} 项条件`:'详细筛选';
-    const layoutLabel=`修改布局：${this.options.view==='timeline'?'时间线':this.options.view==='list'?'列表':'卡片'}`;
-    this.layoutButton.setAttribute('aria-label',layoutLabel);this.layoutButton.title=layoutLabel;setIcon(this.layoutButton,this.options.view==='timeline'?'git-commit-vertical':this.options.view==='list'?'list':'layout-grid');
+    const layoutLabel=`修改布局：${this.options.view==='timeline'?'时间线':this.options.view==='cover'?'封面视图':'卡片'}`;
+    this.layoutButton.setAttribute('aria-label',layoutLabel);this.layoutButton.title=layoutLabel;setIcon(this.layoutButton,this.options.view==='timeline'?'git-commit-vertical':this.options.view==='cover'?'image':'layout-grid');
     this.results.empty();
     if(this.plugin.dashboardIndex.errors.size){const details=this.results.createEl('details');details.createEl('summary',{text:'查看属性读取失败的笔记'});for(const [path,message] of this.plugin.dashboardIndex.errors){details.createEl('p',{text:`${path}：${message}`});this.button(details,'打开笔记',()=>this.openNote(path));}}
     if(!items.length){
@@ -176,8 +176,8 @@ export default class DashboardView extends ItemView {
     for(const [label,group] of entries){
       if(remaining<=0)break;const section=this.results.createEl('section',{cls:'douban-plus-group'});
       if(label){const heading=section.createEl('h3',{cls:'douban-plus-group-heading'});heading.createSpan({text:byYear&&/^\d{4}$/.test(label)?`${label} 年`:label});heading.createSpan({text:String(group.length),cls:'douban-plus-group-count'});}
-      const container=section.createDiv({cls:`douban-plus-items douban-plus-${this.options.view}`});
-      for(const i of group.slice(0,remaining))this.card(container,i);remaining-=group.length;
+      const container=section.createDiv({cls:`douban-plus-items douban-plus-${this.options.view==='cover'?'covers':this.options.view}`});
+      for(const i of group.slice(0,remaining))this.options.view==='cover'?this.coverTile(container,i):this.card(container,i);remaining-=group.length;
     }
     this.renderMore(items);
   }
@@ -205,14 +205,26 @@ export default class DashboardView extends ItemView {
   private async openNote(path:string):Promise<void> {
     const file=this.app.vault.getAbstractFileByPath(path);if(!(file instanceof TFile))throw new Error('关联笔记不存在，请重建索引');await this.app.workspace.getLeaf(true).openFile(file);
   }
-  private card(parent:HTMLElement,i:DashboardItem):void {
-    const card=parent.createEl('article',{cls:'douban-plus-card'});
-    const cover=this.button(card,'',()=>this.openNote(i.files[0]));cover.addClass('douban-plus-cover');cover.setAttribute('aria-label',`打开封面对应笔记：${i.title}`);
+  private createCover(parent:HTMLElement,i:DashboardItem):HTMLButtonElement {
+    const cover=this.button(parent,'',()=>this.openNote(i.files[0]));cover.addClass('douban-plus-cover');cover.setAttribute('aria-label',`打开封面对应笔记：${i.title}`);
     const fallback=cover.createDiv({cls:'douban-plus-cover-fallback'});setIcon(fallback,TYPE_ICONS[i.type]);
     let src:string|undefined;
     if(i.cover && /^https?:\/\//i.test(i.cover))src=i.cover;
     else if(i.cover){const path=i.cover.replace(/^\[\[/,'').replace(/\]\]$/,'');const file=this.app.metadataCache.getFirstLinkpathDest(path,i.files[0]);if(file)src=this.app.vault.getResourcePath(file);}
     if(src){const image=cover.createEl('img',{attr:{src,alt:i.title,loading:'lazy',referrerpolicy:'no-referrer'}});image.onerror=()=>image.remove();image.onload=()=>fallback.hide();}
+    return cover;
+  }
+  private coverTile(parent:HTMLElement,i:DashboardItem):void {
+    const tile=parent.createEl('article',{cls:'douban-plus-cover-tile'});
+    const cover=this.createCover(tile,i);
+    cover.title=`${i.title}\n${TYPE_NAMES[i.type]} · ${stateLabel(i.type,i.state)}\n豆瓣 ${i.score===undefined?'未评分':i.score.toFixed(1)} · 我的 ${i.rating?`${i.rating} 星`:'未评分'}`;
+    const title=this.button(tile,i.title,()=>this.openNote(i.files[0]));title.addClass('douban-plus-cover-title');title.title=i.title;
+    if(i.url){const link=tile.createEl('a',{cls:'douban-plus-cover-link',href:i.url,attr:{'aria-label':`在豆瓣打开：${i.title}`,title:'在豆瓣打开'}});link.target='_blank';link.rel='noopener noreferrer';setIcon(link,'external-link');}
+    if(i.files.length>1){const warning=tile.createSpan({text:String(i.files.length),cls:'douban-plus-cover-warning',attr:{'aria-label':`重复关联 ${i.files.length} 篇笔记`,title:`重复关联 ${i.files.length} 篇，自动更新将跳过；卡片视图可查看全部笔记`}});warning.setAttribute('role','img');}
+  }
+  private card(parent:HTMLElement,i:DashboardItem):void {
+    const card=parent.createEl('article',{cls:'douban-plus-card'});
+    this.createCover(card,i);
     const body=card.createDiv({cls:'douban-plus-card-body'});
     const title=this.button(body,i.title,()=>this.openNote(i.files[0]));title.addClass('douban-plus-card-title');title.title=i.title;
     const badges=body.createDiv({cls:'douban-plus-badges'});

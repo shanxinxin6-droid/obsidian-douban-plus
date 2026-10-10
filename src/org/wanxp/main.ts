@@ -417,6 +417,9 @@ export default class DoubanPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		const defaults=defaultDashboardSettings();const saved=this.settings.dashboard;
 		this.settings.dashboard={...defaults,...saved, options:{...defaults.options,...saved?.options},fields:{...defaults.fields,...saved?.fields}};
+		// The compact cover shelf replaces the legacy list layout.
+		const view=String(this.settings.dashboard.options.view);
+		this.settings.dashboard.options.view=view==='list'||view==='cover'?'cover':view==='timeline'?'timeline':'grid';
 		this.doubanExtractHandler = new DoubanSearchChooseItemHandler(this.app, this);
 		this.fileHandler = new FileHandler(this.app);
 	}

@@ -1,5 +1,4 @@
-import {App, PluginSettingTab,  Setting, Notice} from "obsidian";
-import {MigrationModal, openConfigImport} from '../../dashboard/modals';
+import {App, PluginSettingTab} from "obsidian";
 
 import DoubanPlugin from "../../main";
 import SettingsManager from "./SettingsManager";
@@ -33,13 +32,6 @@ export class DoubanSettingTab extends PluginSettingTab {
 	  const {containerEl} = this;
 	  containerEl.empty();
 	  containerEl.createEl("h2", {text: 'Douban Plus'});
-	  new Setting(containerEl).setName('豆瓣看板').setDesc('Plus 新导入的笔记会自动补充看板属性。')
-	    .addButton(b=>b.setButtonText('打开看板').onClick(()=>this.plugin.activateDashboard()))
-	    .addButton(b=>b.setButtonText('导入原配置').onClick(()=>openConfigImport(this.plugin,()=>this.display()).catch(e=>new Notice(e.message))));
-	  const maintenance=containerEl.createEl('details',{cls:'douban-plus-maintenance'});
-	  maintenance.createEl('summary',{text:'迁移与修复'});
-	  new Setting(maintenance).setName('迁移／修复笔记属性').setDesc('旧插件笔记或缺失属性的笔记可先预览再补全；新导入的笔记无需操作。')
-	    .addButton(b=>b.setButtonText('打开修复工具').onClick(()=>new MigrationModal(this.plugin).open()));
 
 	  // Create tab container
 	  const tabContainer = containerEl.createEl("div", {cls: "obsidian_douban_settings_tab_container"});

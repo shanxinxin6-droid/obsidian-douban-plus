@@ -1,5 +1,6 @@
 import {i18nHelper} from "../../lang/helper";
-import {Platform, Setting} from "obsidian";
+import {Notice, Platform, Setting} from "obsidian";
+import {MigrationModal, openConfigImport} from '../../dashboard/modals';
 import {DEFAULT_SETTINGS} from "../../constant/DefaultSettings";
 import SettingsManager from "./SettingsManager";
 import DoubanLoginModel from "../component/DoubanLoginModel";
@@ -75,6 +76,16 @@ function showAdvancedSettings(containerEl: HTMLElement, manager: SettingsManager
 		});
 
 
+
+	new Setting(containerEl)
+		.setName('导入原豆瓣配置')
+		.setDesc('迁移原豆瓣插件的模板路径、保存路径和字段设置，先预览再确认；登录信息不导入。')
+		.addButton(b=>b.setButtonText('导入原配置').onClick(()=>
+			openConfigImport(manager.plugin,()=>manager.plugin.settingTab.display()).catch(e=>new Notice(String(e.message || e)))));
+	new Setting(containerEl)
+		.setName('迁移／修复笔记属性')
+		.setDesc('用于旧插件笔记或缺失属性的笔记，先预览再补全；Plus 新导入的笔记无需操作。')
+		.addButton(b=>b.setButtonText('打开修复工具').onClick(()=>new MigrationModal(manager.plugin).open()));
 
 	new Setting(containerEl)
 		.setName(i18nHelper.getMessage('125001'))

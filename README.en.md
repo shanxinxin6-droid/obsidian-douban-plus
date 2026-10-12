@@ -21,6 +21,26 @@ Based on [Wanxp/obsidian-douban](https://github.com/Wanxp/obsidian-douban), inde
 
 The dashboard reads local notes without a login. Remote covers need network access; local covers remain available offline. The timeline shows current collection dates rather than a history of repeated viewing or state changes.
 
+## Screenshots
+
+### Card view
+
+Browse records grouped by collection year, with covers, types, ratings, and collection dates. Click an item to open its note.
+
+![Douban Plus card view, grouped by collection year](docs/screenshots/card-view.svg)
+
+### Cover view
+
+A compact cover shelf with year groups and titles. Covers lift slightly on hover; click a cover or title to open the note.
+
+![Douban Plus cover shelf, grouped by year](docs/screenshots/cover-view.svg)
+
+### Timeline and detailed filters
+
+Browse collection dates from newest to oldest, organized by month and day. Combine rating and collection-year filters in the expanded panel.
+
+![Douban Plus collection timeline and detailed filters](docs/screenshots/timeline-view.svg)
+
 ## Installation
 
 ### BRAT

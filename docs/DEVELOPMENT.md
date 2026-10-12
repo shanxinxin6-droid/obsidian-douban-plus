@@ -2,7 +2,7 @@
 
 ## 工程基线
 
-本地仓库保留 Wanxp/obsidian-douban 的完整 Git 历史，以 `22bde026fa3d8d021ba4acd35e0c43ffa93243a8` 为起点。`upstream` 指向原仓库，开发分支为 `feature/douban-dashboard`。没有创建远程仓库、推送或发布。许可证为根目录 `License` 中的 GPLv3；上游作者声明保留。
+本地仓库保留 Wanxp/obsidian-douban 的完整 Git 历史，以 `22bde026fa3d8d021ba4acd35e0c43ffa93243a8` 为起点。`upstream` 指向原仓库，开发分支为 `feature/douban-dashboard`。独立维护者为 `shanxinxin6-droid`，计划发布仓库为同账号下的 `obsidian-douban-plus`；创建与发布步骤见 [发布指南](RELEASING.md)。许可证为根目录 `LICENSE` 中的 GPLv3，上游作者声明和历史保留，修改说明见 `NOTICE`。
 
 插件名 Douban Plus，ID `obsidian-douban-plus`，版本 `0.1.0`。最低 Obsidian 版本声明为 1.4.4，属性刷新使用公开 `FileManager.processFrontMatter()`；桌面实测版本见测试报告。没有新增桌面专属依赖，移动端尚未验收。
 
@@ -21,7 +21,7 @@ npm run deploy:dev
 
 `npm run dev` 监听源码并构建。`deploy:dev` 将三个插件文件复制到独立 `.dev-vault/.obsidian/plugins/obsidian-douban-plus`，首次生成七类虚构笔记、缺类型旧笔记及正文模板；已有测试文件与配置保留，不自动覆盖。构建后重载 Obsidian 插件。虚构 ID 不用于真实同步。
 
-`package:plugin` 生成 `dist/obsidian-douban-plus-0.1.0.zip`，内部只有 `obsidian-douban-plus/main.js`、`manifest.json`、`styles.css`。依赖、参考克隆、测试库、个人配置和构建产物均在忽略列表。持续集成执行锁文件安装、默认测试及生产打包，不自动发布。
+`package:plugin` 生成 `dist/obsidian-douban-plus-0.1.0.zip`，包含插件目录下的 `main.js`、`manifest.json`、`styles.css`，以及 `LICENSE`、`NOTICE`、`INSTALL.md`、`SOURCE.md`、`THIRD_PARTY_NOTICES.txt`。同名目录可用于单独上传 Release 附件。源码说明指向相同版本标签，第三方许可根据生产 bundle 的实际输入生成，历史 npm 包缺失的许可副本保存在 `licenses/`。依赖、参考克隆、测试库、个人配置和构建产物均在忽略列表。持续集成执行锁文件安装、默认测试及生产打包，不自动发布。
 
 ## 代码职责
 

@@ -1,0 +1,29 @@
+Douban Plus
+Maintainer: shanxinxin6-droid
+Repository: https://github.com/shanxinxin6-droid/obsidian-douban-plus
+License: GNU General Public License version 3 (GPL-3.0-only); see LICENSE.
+
+Origin
+This is an independently maintained modified version of
+Wanxp/obsidian-douban: https://github.com/Wanxp/obsidian-douban
+Baseline: 22bde026fa3d8d021ba4acd35e0c43ffa93243a8
+Original authors, including Wanxp and upstream contributors, retain their
+copyrights. Original Git history and existing source notices are preserved.
+The upstream login component credits zhaohongxuan/obsidian-weread-plugin;
+that source attribution is retained.
+
+Modification notice (2026-10-10 through 2026-10-12)
+Douban Plus adds local dashboard views, template-independent metadata,
+body-preserving metadata refresh, indexing, timeline and cover layouts,
+legacy configuration import and note repair, previews, backups, tests,
+and distribution tooling/documentation. See CHANGELOG.md and Git history
+for modified files and individual changes.
+Copyright (c) 2026 shanxinxin6-droid and Douban Plus contributors,
+for their original contributions. No ownership of upstream code is claimed.
+
+Compiled distributions include THIRD_PARTY_NOTICES.txt for the dependencies
+actually bundled into main.js. Those components retain their own licenses.
+SOURCE.md identifies the matching source release and build instructions.
+
+This project is independent of the upstream maintainer, Douban, and Obsidian.
+Support for this modified version is handled in the Douban Plus repository.

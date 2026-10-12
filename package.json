@@ -17,7 +17,15 @@
     "deploy:dev": "npm run build && node scripts/deploy-dev.mjs"
   },
   "keywords": [],
-  "author": "",
+  "author": "shanxinxin6-droid",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shanxinxin6-droid/obsidian-douban-plus.git"
+  },
+  "homepage": "https://github.com/shanxinxin6-droid/obsidian-douban-plus#readme",
+  "bugs": {
+    "url": "https://github.com/shanxinxin6-droid/obsidian-douban-plus/issues"
+  },
   "license": "GPL-3.0-only",
   "devDependencies": {
     "@types/jest": "^28.1.4",

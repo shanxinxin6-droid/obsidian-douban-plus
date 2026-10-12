@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "minAppVersion": "1.4.4",
   "description": "Browse your Douban collection offline, sync metadata safely, and keep custom templates.",
-  "author": "Wanxp; Douban Plus contributors",
-  "authorUrl": "https://obsidian-douban.wxp.hk",
+  "author": "shanxinxin6-droid",
+  "authorUrl": "https://github.com/shanxinxin6-droid/obsidian-douban-plus",
   "isDesktopOnly": false
 }

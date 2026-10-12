@@ -1,143 +1,85 @@
-# Obsidian Douban Plugin
+# Douban Plus
 
-<p align="center">    
-    <a href="https://github.com/Wanxp/obsidian-douban/releases/latest">    
-      <img src="https://img.shields.io/github/manifest-json/v/Wanxp/obsidian-douban?color=blue">    
-   </a>    
-    <img src="https://img.shields.io/github/release-date/Wanxp/obsidian-douban">    
-   <a href="https://github.com/Wanxp/obsidian-douban/blob/master/License">    
-      <img src="https://img.shields.io/github/license/Wanxp/obsidian-douban">    
-   </a>    
-   <img src="https://img.shields.io/github/downloads/Wanxp/obsidian-douban/total">    
-   <a href="https://github.com/Wanxp/obsidian-douban/issues">    
-      <img src="https://img.shields.io/github/issues/Wanxp/obsidian-douban">    
-   </a>    
-   <br>    
-   <img src="https://img.shields.io/tokei/lines/github/Wanxp/obsidian-douban">    
-   <a href="https://www.codefactor.io/repository/github/wanxp/obsidian-douban">    
-   <img src="https://www.codefactor.io/repository/github/wanxp/obsidian-douban/badge" alt="CodeFactor" />    
-   </a>    
-</p>    
+Browse your Douban collection in Obsidian using cards, a cover shelf, or a collection timeline.
 
-Bring your data from [Douban]() to Your [Obsidian](https://obsidian.md/)   
-Including your _Movie, Book, Music, Teleplay, Note, Game_ even your personal State and Comment
-![background](doc/background.png)
+[简体中文](README.md) · [Downloads](https://github.com/shanxinxin6-droid/obsidian-douban-plus/releases) · [Issues](https://github.com/shanxinxin6-droid/obsidian-douban-plus/issues)
 
----  
-If you want some features or have any questions about this plugin, create issues or join the development is welcome or ⭐Star
+Based on [Wanxp/obsidian-douban](https://github.com/Wanxp/obsidian-douban), independently maintained by **shanxinxin6-droid**, and distributed under GPLv3. This project handles its own support and enhancements.
 
-- [Bugs, Issues, & Feature Requests](https://github.com/Wanxp/obsidian-douban/issues)
-- Read Other Languages: English | [简体中文](README.md)
+**0.1.0 is a testing release.** Distribution is through GitHub Releases, BRAT, and manual installation, outside the official Obsidian community directory. GitHub's source archives are not installable plugin packages.
 
-## Target
-- [x] Sync Personal Movie/TV/Book/Music
-- [x] Import Movie/Teleplay/Book/Music/Note/Game
-- [x] Personal Comment/State/Rate
-- [x] Custom Variables
+## Features
 
-## 效果
-1. 结合Timeline插件 __构建个人观影时间线__，请参照[结合timeline插件实现时间线效果](doc/Obsidian-Douban-TimeLine.md)
-   ![](doc/img/obsidian-douban-time-preview-example.gif)
-<!--2.  结合DataView插件，__构建个人电子书架（书库数据）__，请参照[结合dateview插件实现个人书架效果](./doc/Obsidian-Douban-DataView.md))-->
-2. 结合主题 __构建类豆瓣网页效果__，请参照[结合Blue Topaz实现网页效果](doc/Obsidian-Douban-BlueTopaz.md)
-   ![](doc/background.png)
+- Local dashboard for movies, TV series, books, music, games, stage productions, and Douban notes.
+- Card, cover, and timeline layouts with saved preferences.
+- Local title/tag search, type/state/rating/year filters, grouping, sorting, and result counts.
+- Online Douban search and template-based imports using the globe-and-search toolbar button.
+- Upstream batch collection sync for movies, TV series, books, music, and games, with progress and cancellation.
+- Whole-note imports automatically receive stable `douban_` frontmatter, even if custom templates omit dashboard fields.
+- Metadata refresh preserves the existing note body by default. Force overwrite regenerates the body.
+- Legacy configuration import and property repair with previews, backups, and restore.
 
-## How to use
-### Sync
-- Sync Data From Douban    
-  Sync data from Douban (to learn how to use the TimeLine plugin to build a reading/movie watching timeline, please refer to [here](Obsidian-Douban-TimeLine.en.md)).
-  ![Sync Data From Douban](doc/img/sync_data_from_douban.gif)
-### Search
-Use the following method: Enter <kbd>Ctrl</kbd> + <kbd>P</kbd>, enter "Douban", select search and use
-- Search Data And Create Note  
-- Search Data By File Name    
-- Search Movie By Input Text       
-  ![Search Movie By File Name](doc/img/search_and_create_note.gif)
+The dashboard reads local notes without a login. Remote covers need network access; local covers remain available offline. The timeline shows current collection dates rather than a history of repeated viewing or state changes.
 
+## Installation
 
-## Support Field
-(若有缺少想导入的字段, 欢迎提issues反馈)
+### BRAT
 
-| 字段              | 电影                | 电视剧              | 书籍                | 音乐             | 日记             | 游戏            | 广播 |
-|-----------------|-------------------|------------------|-------------------|----------------|----------------|---------------| ---- |
-| `id`              | 豆瓣ID              | 豆瓣ID             | 豆瓣ID              | 豆瓣ID           | 豆瓣ID           | 豆瓣ID          | -    | 
-| `title`           | 电影名称              | 电视剧名称            | 书名                | 音乐名            | 日记标题           | 游戏名称          | -    |   
-| `type`            | 类型                | 类型               | 类型                | 类型             | 类型             | 类型            | -    |   
-| `score`           | 评分                | 评分               | 评分                | 评分             | 评分             | 评分            | -    |   
-| `image`           | 封面                | 封面               | 封面                | 封面             | 图片             | 封面            | -    |    
-| `url`             | 豆瓣网址              | 豆瓣网址             | 豆瓣网址              | 豆瓣网址           | 豆瓣网址           | 豆瓣网址          | -    |    
-| `desc`            | 简介                | 简介               | 内容简介              | 简介             | 简介             | 简介            | -    |    
-| `publisher`       | -                 | -                | 出版社               | 出版者            | 发布者            | 发行商           | -    |    
-| datePublished   | 上映日期              | 上映日期             | 出版年               | 发行时间           | 发布时间           | 发行日期          | -    |    
-| yearPublished   | 上映年份              | 上映年份             | 出版年份              | 发行年份           | 发布年份           | 发行年份          | -    |    
-| genre           | 类型                | 类型               | -                 | 流派             | -              | 类型            | -    |   
-| currentDate     | 今日日期              | 今日日期             | 今日日期              | 今日日期           | 今日日期           | 今日日期          |      |  
-| currentTime     | 当前时间              | 当前时间             | 当前时间              | 当前时间           | 当前时间           | 当前时间          |      |   
-| myTags          | 我标记的标签            | 我标记的标签           | 我标记的标签            | 我标记的标签         | -              | 我标记的标签        |      |  
-| myRating        | 我的评分              | 我的评分             | 我的评分              | 我的评分           | -              | 我的评分          |
-| myState         | 状态:想看/在看/看过       | 状态:想看/在看/看过      | 状态:想看/在看/看过       | 状态:想听/在听/听过    | -              | 状态:想玩/在玩/玩过   |      |    
-| myComment       | 我的评语              | 我的评语             | 我的评语              | 我的评语           | -              | 我的评语          |      |  
-| myCollectionDate | 我标记的时间            | 我标记的时间           | 我标记的时间            | 我标记的时间         | -              | 我标记的时间        |      |   
-| 扩展1             | director:导演       | director:导演      | author:原作者        | actor: 表演者     | author:作者      | aliases:别名    |      |   
-| 扩展2             | author:编剧         | author:编剧        | translator:译者     | albumType:专辑类型 | authorUrl:作者网址 | developer:开发商 |      |    
-| 扩展3             | actor:主演          | actor:主演         | isbn:isbn         | medium:介质      | content:日记内容   | platform:平台   |      |    
-| 扩展4             | originalTitle:原作名 | originalTitle:原作名 | originalTitle:原作名 | records:唱片数    |                |               |      |   
-| 扩展5             | country:国家        | country:国家       | subTitle:副标题      | barcode:条形码    |                |               |      |   
-| 扩展6             | language:语言       | language:语言      | totalPage:页数      |                |                |               |      |    
-| 扩展7             | time:片长           | time:片长          | series:丛书         |                |                |               |      |    
-| 扩展8             | aliases:又名        | aliases:又名       | menu:目录           |                |                |               |      |    
-| 扩展9             | IMDb              | IMDb             | price:定价          |                |                |               |      |     
-| 扩展7             |                   | episode:集数       | binding:装帧        |                |                |               |      |    
-| 扩展8             |                   |                  | producer: 出品方     |                |                |               |      |     
+1. Install and enable [BRAT](https://github.com/TfTHacker/obsidian42-brat) from Obsidian's community plugins.
+2. In BRAT settings, choose **Add a beta plugin** and enter:
 
-- Notice: myTags, myRating, myState, myComment, myCollectionDate. All parameters are available after logging in to the plugin.
+   ```text
+   https://github.com/shanxinxin6-droid/obsidian-douban-plus
+   ```
 
+3. Select an available release, initially `0.1.0`, and install it.
+4. Enable **Douban Plus**. Use BRAT to check for updates; a frozen version must be changed explicitly to upgrade.
 
-## How to install
-### From Obsidian
-1. Go to Obsidian plugin center
-2. Search obsidian-douban
-3. Click install
-4. Enable plugin  
-   
-### Manmel
-1. Download `main.js`, `manifest.json`, `styles.css` from GitHub release page
-2. Copy step1 downloaded file to your vault folder `/.obsidian/plugins/obsidian-douban/`
-3. Enable plugin in Obsidian  
+BRAT needs a publicly accessible GitHub Release with individual plugin assets. Source commits and draft releases alone are insufficient. UI wording varies by BRAT version.
 
-## How to Develop
-1. Enter your test vault folder `/.obsidian/plugins/`
-2. Clone Code    
-   `git clone git@github.com:Wanxp/obsidian-douban.git`
-3. Enter folder    
-   `cd obsidian-douban`
-4. Build    
-   `npm run build`
-5. Run and Watch code chang    
-   `npm run dev`
-6. Go to your Obsidian plugin center reload this plugin
-7. Enjoy your develop  
+### Manual download and updates
 
-## Community
-<img src="doc/img/obsidian-douban-qq-qr_code.svg" width="300px">  <img src="doc/img/wechat_group.png" width="245px">  
+Download `obsidian-douban-plus-0.1.0.zip` from [Release assets](https://github.com/shanxinxin6-droid/obsidian-douban-plus/releases), not the GitHub source archive. Extract its `obsidian-douban-plus` folder into `<vault>/.obsidian/plugins/`, or your custom configuration directory. The folder must directly contain `main.js`, `manifest.json`, and `styles.css`; keep the supplied license, attribution, source, and installation files. Restart Obsidian and enable Douban Plus.
 
-## Disclaimer
-1. This program does not crawl any content such as books and videos, and is only for technical research purposes. It does not violate the copyright of authors of books and videos or the official interests of Douban. If there is any infringement, please contact me to delete it.
-2. This program is for learning and communication only, and cannot be used for commercial purposes. Otherwise, the consequences will be at your own risk.
-3. Although every effort is made to avoid it, I am not responsible for any losses caused by the plug-in. Please refer to [here](#impact) for the impact of different operations.
+Obsidian does not import ZIP files directly. To update, disable the plugin, replace the release files, and enable it again. **Keep your existing `data.json` and `backups` folder.** Manual installs require manual updates or BRAT.
 
-## Impact
-Note: Except for checking "Replace documents with the same name" when synchronizing book and video data, which may modify notes with the same path and document name, other operations will not modify existing notes.
+## Getting started
 
-| Operation         | Condition             | Impact                      | Example                                                                                         |
-|-----------------|-----------------------|---------------------------|-----------------------------------------------------------------------------------------------|
-| Import book and video data   | Default condition      | Create a note named after the selected item   | If you search for "Batman" and select it for import, a note titled "Batman" will be created   |
-| Import book and video data   | Note with the same name already exists | No impact, prompted that there is already a note with the same name, and the existing note will not be modified | If you search for "Batman" and select it for import, but there is already a note with the same path and name, a note will not be created  |
-| Import book and video data   |  Configure the `note name` value to include the path  | If there is no such path, it will create a file with the corresponding file name  | If you search for "Batman" and select it for import, configure the `note name` value to be `/data/{{type}}/{{title}}`, a folder `data/Movie` will be created |
-| Import book and video data   | Configure the `save image attachment` value to be checked  | Save the cover image in the specified location of `attachment storage location`   | If you search for "Batman" and select it for import, configure the `attachment storage location` value to be `assets`, the cover file `p462657443.jpg` will be saved in the `assets` folder |
-| Synchronize book and video data | All of the above | All of the above | All of the above |
-| Synchronize book and video data |  Check the value of `replace the same document` | If the file with the same path and name already exists, overwrite it directly | If there is already a `data/Movie/Batman.md` file, configure the `note name` value to be `/data/{{type}}/{{title}}`, and check "Replace documents with the same name" when synchronizing book and video records, then `data/Movie/Batman.md` will be replaced with the latest one |
+Configure output paths, note names, and templates in **Settings → Douban Plus**. If switching from the original plugin, use **Advanced → Import original configuration**, preview the selected/read/pasted JSON, and confirm. This imports settings, not template or note files; login credentials are excluded.
 
-## Thanks
-### IDE support
-[<image src="doc/img/jb_beam.svg"> </image>](https://www.jetbrains.com/?from=obsidian-douban)
+Log in within Plus to access personal collection data. Open the dashboard using the ribbon button or command, then import an item through online search or choose a batch sync scope. Use the layout menu and detailed filters to browse local records.
+
+New Plus imports normally do not need legacy repair. Existing notes can be previewed under **Advanced → Migrate/repair note properties** before selecting any writes. Both plugins can be installed, but use one at a time for sync into shared files. Back up your vault before bulk changes.
+
+## Data and compatibility
+
+Plugin-managed `douban_` frontmatter contains identity, type, title, cover, ratings, state, dates, and tags. Custom fields and the body are preserved by default; YAML formatting and comments may change. Douban ratings use 0–10, personal ratings use 1–5, and unavailable values stay unknown.
+
+Online operations and remote covers access Douban services, including `douban.com` and `doubanio.com`. Optional PicGo support uses your configured local upload service and destination. Login cookies and settings are stored in the plugin's local `data.json` without additional credential encryption; migration backups live in `backups`. Remove credentials and personal data before sharing configurations or logs.
+
+The manifest declares Obsidian **1.4.4** as the minimum; that version has not been tested on a real installation. Basic dashboard and some migration flows were verified on **Windows desktop Obsidian 1.14.4**. Mobile and full live-account login/search/sync acceptance remain pending. Automated network tests use mock responses. This release is intended initially for desktop testing.
+
+Douban restrictions or site changes can break network operations without removing local notes. Stage productions and notes support local display and upstream individual imports, without additional batch collection sync.
+
+## Development
+
+Use Node.js **24**:
+
+```sh
+npm ci
+npm run typecheck
+npm run test:unit
+npm run package:plugin
+```
+
+`npm run dev` watches the source. `npm run deploy:dev` deploys to the separate `.dev-vault`. Packages are in `dist/`; dependencies, test vaults, login settings, and build artifacts are excluded from Git. Detailed documentation is currently in Chinese:
+
+- [Development and metadata](docs/DEVELOPMENT.md)
+- [Migration](docs/MIGRATION.md)
+- [Test report and limitations](docs/TEST_REPORT.md)
+- [Repository and release instructions](docs/RELEASING.md)
+- [Changelog](CHANGELOG.md)
+
+## License and credits
+
+Thanks to **Wanxp and the obsidian-douban contributors**. Upstream Git history and existing source notices are preserved, including the login component's Weread plugin reference. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Compiled distributions include bundled dependencies' licenses in `THIRD_PARTY_NOTICES.txt`. This is an independent project, unaffiliated with Douban or Obsidian.

@@ -1,5 +1,17 @@
 # Douban Plus 0.1.0 测试报告
 
+## 发布材料整理验证（2026-10-12）
+
+- 维护者与清单作者统一为 `shanxinxin6-droid`；计划仓库为 `shanxinxin6-droid/obsidian-douban-plus`。保留现有插件 ID 和兼容性声明，没有实际创建远程仓库或发布 Release：GitHub CLI 原凭据返回 HTTP 401，创建步骤见 [发布指南](RELEASING.md)。
+- 重写中英文 README，明确 BRAT／ZIP 手动安装、升级保留配置与备份、独立维护及测试版验收范围。新增安装说明、CHANGELOG、NOTICE、发布说明与源码来源链接。
+- 根 GPLv3 许可证正文保持不变，文件名规范为 LICENSE；编译 banner 保留来源与许可标识。生产打包根据实际 bundle 生成依赖许可，其中 `boolbase@1.0.0` 的 npm 包未附许可文件，使用已核查的上游 ISC 副本。
+- `npm run package:plugin` 成功，包含类型检查与生产构建。ZIP 检查包含 8 个文件：main.js、manifest.json、styles.css、LICENSE、NOTICE、INSTALL.md、SOURCE.md、THIRD_PARTY_NOTICES.txt；未包含个人配置或备份。
+- `npm run test:unit`：20 个套件通过、2 个条件套件跳过；123 项通过、20 项联网条件测试跳过。5,000 条模拟记录：索引 773 ms、过滤 23 ms、时间线 11 ms。
+- 中英文 README、安装与开发／发布指南的本地 Markdown 链接核查通过；维护者一致性、编译许可 banner 与 `git diff --check` 通过。
+- 远程仓库、源码标签和 Release 创建前，文档中的下载／反馈／源码链接是预设地址。没有把 BRAT 下载、公开 Release、真实账号同步或移动端记为本轮验证通过。标签发布后仍需在独立库验证 GitHub 附件手动安装与 BRAT 安装。
+
+以下为此前开发阶段的历史验证记录，具体布局和安装包组成以最新 README 与上面的发布检查为准。
+
 验证日期：2026-10-10。设备：Windows，AMD Ryzen 5 5600G，约 16 GB 内存；Node.js 24.16.0 / npm 11.13.0；实机 Obsidian 1.14.4。全部数据操作使用独立 `.dev-vault`。
 
 ## 自动验证结果

@@ -3,7 +3,7 @@ name: 异常反馈/Bug report
 about: 使用遇到问题时反馈问题/Create a report to help us improve
 title: "[Bug]:简要描述你的问题"
 labels: ''
-assignees: Wanxp
+assignees: shanxinxin6-droid
 
 ---
 
@@ -39,7 +39,7 @@ comment: {{myComment}}
 ---
 ```
 4. 其它
-如相关的插件设置...
+如相关的插件设置，请先删除 Cookie、登录信息和其他个人数据，不要上传完整 data.json。
 
 5. 操作系统版本
 - [x] windows

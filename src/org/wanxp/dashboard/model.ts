@@ -21,12 +21,30 @@ export interface DashboardOptions {
 export interface DashboardSettings {
   options: DashboardOptions; folders: string[]; fields: Record<string, string>;
 }
-export const DEFAULT_OPTIONS: DashboardOptions = {query:'', type:'all', state:'all', minScore:'', maxScore:'', rating:'all', scoreState:'all', year:'all', timelineYear:'all', yearDimension:'published', view:'grid', group:'collection', sort:'recent'};
+export const DEFAULT_OPTIONS: DashboardOptions = {query:'', type:'all', state:'all', minScore:'', maxScore:'', rating:'all', scoreState:'all', year:'all', timelineYear:'all', yearDimension:'collection', view:'grid', group:'collection', sort:'recent'};
 export const DEFAULT_FIELDS: Record<string, string> = {id:'doubanId', type:'type', url:'url', title:'title', cover:'image', score:'score', rating:'myRating', state:'myState', publishedDate:'datePublished', collectionDate:'myCollectionDate', tags:'myTags'};
 export const defaultDashboardSettings = (): DashboardSettings => ({options:{...DEFAULT_OPTIONS}, folders:[], fields:{...DEFAULT_FIELDS}});
 export function resetDashboardFilters(options:DashboardOptions):DashboardOptions {
   return {...DEFAULT_OPTIONS,view:options.view,group:options.group,sort:options.sort,
-    ...(options.view==='timeline'?{year:options.year,yearDimension:options.yearDimension}:{timelineYear:options.timelineYear})};
+    ...(options.view==='timeline'?{year:options.year,yearDimension:options.yearDimension}:{timelineYear:options.timelineYear,yearDimension:dashboardYearDimension(options)})};
+}
+export function dashboardYearDimension(options:DashboardOptions):DashboardOptions['yearDimension'] {
+  if(options.view==='timeline')return 'collection';
+  return options.group==='collection'||options.group==='published'?options.group:options.yearDimension;
+}
+export function changeDashboardOption<K extends keyof DashboardOptions>(options:DashboardOptions,key:K,value:DashboardOptions[K]):DashboardOptions {
+  const previous=dashboardYearDimension(options);const next={...options,[key]:value};
+  if(next.view!=='timeline'){
+    if(key==='group')next.yearDimension=next.group==='collection'||next.group==='published'?next.group:previous;
+    if(key==='yearDimension' && (next.group==='collection'||next.group==='published'))next.group=next.yearDimension;
+    // Changing the date source starts a fresh year filter instead of reinterpreting a saved year.
+    if(key!=='view' && dashboardYearDimension(next)!==previous)next.year='all';
+  }
+  return next;
+}
+export function dashboardYears(items:DashboardItem[],options:DashboardOptions):string[] {
+  const dimension=dashboardYearDimension(options);
+  return [...new Set(items.map(i=>(dimension==='collection'?i.collectionDate:i.publishedDate)?.slice(0,4)).filter(Boolean))].sort().reverse();
 }
 
 export function normalizeType(value: unknown): ItemType {
@@ -87,7 +105,8 @@ export function identityKey(id: string, type: ItemType, url?: string): string | 
 export function queryItems(items: DashboardItem[], o: DashboardOptions): DashboardItem[] {
   const q = o.query.trim().toLocaleLowerCase();
   const timeline=o.view==='timeline';const year=timeline?(o.timelineYear || 'all'):o.year;
-  const yearOf = (i: DashboardItem) => (timeline || o.yearDimension === 'collection' ? i.collectionDate : i.publishedDate)?.slice(0,4);
+  const dimension=dashboardYearDimension(o);
+  const yearOf = (i: DashboardItem) => (dimension === 'collection' ? i.collectionDate : i.publishedDate)?.slice(0,4);
   return items.filter(i => (!q || `${i.title} ${i.tags.join(' ')}`.toLocaleLowerCase().includes(q))
     && (o.type === 'all' || i.type === o.type) && (o.state === 'all' || i.state === o.state)
     && (o.scoreState === 'all' || (o.scoreState === 'unknown' ? i.score === undefined : i.score !== undefined))

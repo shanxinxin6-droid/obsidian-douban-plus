@@ -1,13 +1,15 @@
 import {addIcon, ItemView, Menu, Notice, setIcon, TFile, WorkspaceLeaf} from 'obsidian';
 import type DoubanPlugin from '../main';
-import {DashboardItem, DashboardOptions, DEFAULT_OPTIONS, queryItems, resetDashboardFilters, STATE_NAMES, stateLabel, timelineGroups, TYPE_NAMES} from './model';
+import {changeDashboardOption, DashboardItem, DashboardOptions, dashboardYearDimension, dashboardYears, DEFAULT_OPTIONS, queryItems, resetDashboardFilters, STATE_NAMES, stateLabel, timelineGroups, TYPE_NAMES} from './model';
 import {ConfirmModal, MigrationModal, openConfigImport} from './modals';
 import {resolveLocalCover} from './covers';
 
 export const DASHBOARD_VIEW='douban-plus-dashboard';
 const COVER_VIEW_ICON='douban-plus-cover-view';
+const WEB_SEARCH_ICON='douban-plus-web-search';
 export function registerDashboardIcons():void {
   addIcon(COVER_VIEW_ICON,'<g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="13" width="22" height="74" rx="4"/><rect x="39" y="13" width="22" height="74" rx="4"/><rect x="69" y="13" width="22" height="74" rx="4"/><path d="M10 69h20M40 69h20M70 69h20"/></g>');
+  addIcon(WEB_SEARCH_ICON,'<g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><circle cx="36" cy="36" r="29"/><ellipse cx="36" cy="36" rx="12" ry="29"/><path d="M7 36h58"/><circle cx="73" cy="73" r="15"/><path d="m84 84 12 12"/></g>');
 }
 const TYPE_ICONS={movie:'film',teleplay:'tv',book:'book-open',music:'music',game:'gamepad-2',theater:'drama',note:'notebook-pen',unknown:'library'};
 
@@ -17,6 +19,7 @@ export default class DashboardView extends ItemView {
   private filterButton:HTMLButtonElement;private cancelButton:HTMLButtonElement;private layoutButton:HTMLButtonElement;private resetButton:HTMLButtonElement;
   private unsubscribe:()=>void;private timer:ReturnType<typeof setInterval>;
   private limit=100;private error='';private yearSelect:HTMLSelectElement;
+  private yearFields:HTMLElement;
   constructor(leaf:WorkspaceLeaf,private plugin:DoubanPlugin){super(leaf);}
   getViewType():string{return DASHBOARD_VIEW;}
   getDisplayText():string{return '豆瓣看板';}
@@ -33,7 +36,7 @@ export default class DashboardView extends ItemView {
     if(this.options.view!=='timeline')this.select(quick,'分组','group',{collection:'按收藏年份',published:'按发布年份',type:'按类型',state:'按状态',none:'不分组'},false);
     const actions=toolbar.createDiv({cls:'douban-plus-actions'});
     this.iconButton(actions,'同步','refresh-cw',()=>this.plugin.openDashboardSync()).addClass('mod-cta');
-    this.iconButton(actions,'豆瓣搜索 / 导入','search',()=>this.plugin.openDashboardSearch());
+    this.iconButton(actions,'豆瓣搜索 / 导入',WEB_SEARCH_ICON,()=>this.plugin.openDashboardSearch());
     this.layoutButton=this.iconButton(actions,'修改布局','layout-grid',()=>this.openLayoutMenu());this.layoutButton.setAttribute('aria-haspopup','menu');
     this.filterButton=this.iconButton(actions,'详细筛选','sliders-horizontal',()=>this.togglePanel(this.advanced,this.filterButton));
     this.filterButton.setAttribute('aria-expanded','false');
@@ -43,7 +46,7 @@ export default class DashboardView extends ItemView {
 
     this.advanced=el.createDiv({cls:'douban-plus-panel douban-plus-filters',attr:{'aria-label':'详细筛选'}});this.advanced.hidden=true;
     const filterHeader=this.advanced.createDiv({cls:'douban-plus-filter-header'});
-    const filterIntro=filterHeader.createDiv();filterIntro.createEl('h3',{text:'详细筛选'});filterIntro.createSpan({text:'组合条件，即时筛选你的收藏'});
+    const filterIntro=filterHeader.createDiv();filterIntro.createEl('h3',{text:'详细筛选'});filterIntro.createSpan({text:'组合条件，即时筛选；年份分组与筛选使用同一依据'});
     this.iconButton(filterHeader,'收起详细筛选','chevron-up',()=>{this.togglePanel(this.advanced,this.filterButton);this.filterButton.focus();});
     const filterSections=this.advanced.createDiv({cls:'douban-plus-filter-sections'});
     const scores=this.filterSection(filterSections,'评分','star','douban-plus-score-fields');
@@ -57,17 +60,13 @@ export default class DashboardView extends ItemView {
     rangeInputs.createSpan({text:'/ 10',cls:'douban-plus-range-unit'});
     this.select(scores,'豆瓣评分状态','scoreState',{all:'全部评分',scored:'已有评分',unknown:'未评分'});
     this.select(scores,'个人评分','rating',{all:'全部个人评分',unknown:'未评分','1':'1 星','2':'2 星','3':'3 星','4':'4 星','5':'5 星'});
-    const dates=this.filterSection(filterSections,'年份','calendar-days','douban-plus-year-fields');
-    if(this.options.view==='timeline'){
-      const basis=dates.createDiv({cls:'douban-plus-score-range'});basis.createSpan({text:'年份依据'});basis.createSpan({text:'收藏年份',cls:'douban-plus-fixed-value'});
-    }else this.select(dates,'年份依据','yearDimension',{published:'发布年份',collection:'收藏年份'});
-    this.select(dates,'年份',this.options.view==='timeline'?'timelineYear':'year',{all:'全部年份',unknown:'年份未知'});
+    this.yearFields=this.filterSection(filterSections,'年份筛选','calendar-days','douban-plus-year-fields');this.renderYearFields();
     const ordering=this.filterSection(filterSections,'排序','arrow-down-wide-narrow','douban-plus-sort-fields');
     if(this.options.view==='timeline'){
       ordering.createSpan({text:'收藏日期 · 从新到旧',cls:'douban-plus-fixed-value'});
       ordering.createSpan({text:'日期未知的收藏放在末尾；同一天的条目集中展示。',cls:'douban-plus-filter-hint'});
     }else{
-      this.select(ordering,'排序','sort',{recent:'最近收藏 / 文件修改',title:'标题',score:'豆瓣评分',rating:'个人评分',year:'年份'});
+      this.select(ordering,'排序','sort',{recent:'最近收藏 / 文件修改',title:'标题',score:'豆瓣评分',rating:'个人评分',year:'年份（跟随筛选依据）'});
       ordering.createSpan({text:'无收藏日期时，最近收藏按文件修改时间排序。',cls:'douban-plus-filter-hint'});
     }
     this.tools=el.createDiv({cls:'douban-plus-panel douban-plus-tools',attr:{'aria-label':'管理工具'}});this.tools.hidden=true;
@@ -113,7 +112,19 @@ export default class DashboardView extends ItemView {
     return group.createDiv({cls:`douban-plus-filter-fields ${cls}`});
   }
   private change<K extends keyof DashboardOptions>(key:K,value:DashboardOptions[K]):void {
-    this.options[key]=value;this.limit=100;void this.plugin.saveSettings().catch(e=>new Notice(e.message));this.renderResults();
+    this.plugin.dashboardSettings.options=changeDashboardOption(this.options,key,value);this.limit=100;
+    if(key==='group'||key==='yearDimension')this.renderYearFields();
+    void this.plugin.saveSettings().catch(e=>new Notice(e.message));this.renderResults();
+  }
+  private renderYearFields():void {
+    const el=this.yearFields;const focused=el.querySelector('select:focus')?.getAttribute('aria-label');el.empty();
+    const timeline=this.options.view==='timeline';const linked=timeline || this.options.group==='published'||this.options.group==='collection';
+    const dimension=dashboardYearDimension(this.options);const name=dimension==='collection'?'收藏年份':'发布年份';
+    if(!linked)this.select(el,'年份依据','yearDimension',{published:'发布年份',collection:'收藏年份'});
+    this.select(el,name,timeline?'timelineYear':'year',{all:`全部${name}`,unknown:`${name}未知`});
+    el.classList.toggle('is-linked',linked);
+    el.createSpan({text:timeline?'时间线按收藏日期展示，年份筛选固定为收藏年份。':linked?`跟随上方的“按${name}”分组；更换年份依据请在上方切换分组。`:'当前按类型、状态或不分组展示，可独立选择年份依据。',cls:'douban-plus-filter-hint'});
+    if(focused)Array.from(el.querySelectorAll('select')).find(select=>select.getAttribute('aria-label')===focused)?.focus();
   }
   private select(el:HTMLElement,label:string,key:keyof DashboardOptions,values:Record<string,string>,showLabel=true):void {
     const wrapper=el.createEl('label');if(showLabel)wrapper.createSpan({text:label});
@@ -149,9 +160,9 @@ export default class DashboardView extends ItemView {
   }
   private renderResults():void {
     const all=this.plugin.dashboardIndex.items();
-    const years=new Set<string>();for(const i of all)for(const date of this.options.view==='timeline'?[i.collectionDate]:[i.publishedDate,i.collectionDate])if(date)years.add(date.slice(0,4));
+    const years=dashboardYears(all,this.options);const name=dashboardYearDimension(this.options)==='collection'?'收藏年份':'发布年份';
     const selected=this.options.view==='timeline'?this.options.timelineYear:this.options.year;this.yearSelect.empty();
-    for(const [value,text] of [['all','全部年份'],['unknown','年份未知'],...[...years].sort().reverse().map(y=>[y,y])])this.yearSelect.createEl('option',{value,text});
+    for(const [value,text] of [['all',`全部${name}`],['unknown',`${name}未知`],...years.map(y=>[y,y])])this.yearSelect.createEl('option',{value,text});
     // Retain the saved selection even if its last matching note was removed.
     if(!Array.from(this.yearSelect.options).some(o=>o.value===selected))this.yearSelect.createEl('option',{value:selected,text:selected});
     this.yearSelect.value=selected;
@@ -169,7 +180,7 @@ export default class DashboardView extends ItemView {
     if(!items.length){
       const empty=this.results.createDiv({cls:'douban-plus-empty'});setIcon(empty.createDiv(),active?'search':'library');
       empty.createEl('h3',{text:this.plugin.dashboardIndex.loading?'正在读取笔记…':active?'没有匹配的收藏':'你的收藏架还是空的'});
-      empty.createEl('p',{text:active?'试试其他关键词，或重置筛选条件。':'点击放大镜搜索并导入豆瓣条目。'});
+      empty.createEl('p',{text:active?'试试其他关键词，或重置筛选条件。':'点击联网搜索按钮，搜索并导入豆瓣条目。'});
       if(!active)this.button(empty,'豆瓣搜索 / 导入',()=>this.plugin.openDashboardSearch());return;
     }
     if(this.options.view==='timeline'){this.renderTimeline(items);this.renderMore(items);return;}

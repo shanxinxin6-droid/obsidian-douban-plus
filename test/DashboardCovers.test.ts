@@ -47,4 +47,5 @@ it.each(['remote','local'])('refreshes scores while keeping the downloaded cover
 
 it('registers a dedicated cover-shelf icon instead of relying on a version-specific icon alias',()=>{
   registerDashboardIcons();expect(addIcon).toHaveBeenCalledWith('douban-plus-cover-view',expect.stringContaining('<rect'));
+  expect(addIcon).toHaveBeenCalledWith('douban-plus-web-search',expect.stringContaining('<ellipse'));
 });

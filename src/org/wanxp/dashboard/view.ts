@@ -76,8 +76,11 @@ export default class DashboardView extends ItemView {
       new ConfirmModal(this.app,'刷新当前结果的属性',`将逐项获取 ${items.length} 个条目的最新数据。保留正文，沿用豆瓣请求间隔。`,()=>this.plugin.refreshDashboardItems(items),'开始刷新').open();
     });
     this.button(this.tools,'重建索引',()=>this.plugin.dashboardIndex.rebuild());
-    this.button(this.tools,'补全旧笔记',()=>new MigrationModal(this.plugin).open());
     this.button(this.tools,'导入原配置',()=>openConfigImport(this.plugin));
+    const maintenance=this.tools.createEl('details',{cls:'douban-plus-maintenance'});
+    maintenance.createEl('summary',{text:'迁移与修复'});
+    maintenance.createEl('p',{text:'仅用于旧插件笔记或缺失属性的笔记；Plus 新导入的笔记无需操作。'});
+    this.button(maintenance,'迁移／修复笔记属性',()=>new MigrationModal(this.plugin).open());
     const summary=el.createDiv({cls:'douban-plus-summary'});
     this.stats=summary.createDiv({cls:'douban-plus-stats',attr:{'aria-label':'当前结果概览'}});
     this.resetButton=this.button(summary,'重置筛选',async()=>{
@@ -166,7 +169,7 @@ export default class DashboardView extends ItemView {
     if(!items.length){
       const empty=this.results.createDiv({cls:'douban-plus-empty'});setIcon(empty.createDiv(),active?'search':'library');
       empty.createEl('h3',{text:this.plugin.dashboardIndex.loading?'正在读取笔记…':active?'没有匹配的收藏':'你的收藏架还是空的'});
-      empty.createEl('p',{text:active?'试试其他关键词，或重置筛选条件。':'搜索并导入豆瓣条目，或在管理工具中补全旧笔记。'});
+      empty.createEl('p',{text:active?'试试其他关键词，或重置筛选条件。':'点击放大镜搜索并导入豆瓣条目。'});
       if(!active)this.button(empty,'豆瓣搜索 / 导入',()=>this.plugin.openDashboardSearch());return;
     }
     if(this.options.view==='timeline'){this.renderTimeline(items);this.renderMore(items);return;}

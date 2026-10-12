@@ -1,10 +1,28 @@
 import {App, normalizePath, TFile} from 'obsidian';
-import {DashboardItem, DashboardSettings, identityKey, normalizeType, parseIdentity} from './model';
+import {DashboardItem, DashboardSettings, dateString, identityKey, normalizeType, parseIdentity} from './model';
 import {itemFromProperties} from './index';
 import {mergeProperties, Properties, propertiesFromSubject, splitNote} from './properties';
 import DoubanSubject from '../douban/data/model/DoubanSubject';
-export interface MigrationPreview {path:string; before:string; after?:string; patch?:Properties; key?:string; issue?:string;}
+export interface MigrationPreview {path:string; before:string; after?:string; patch?:Properties; key?:string; issue?:string; changes?:MigrationChange[];}
 export interface BackupRecord {path:string; before:string; after:string; createdAt:string;}
+export interface MigrationChange {key:string; before:unknown; after:unknown; added:boolean;}
+export type MigrationStatus='pending'|'blocked'|'complete';
+export const MIGRATION_PROPERTY_NAMES:Record<string,string>={douban_source:'豆瓣来源',douban_schema:'属性格式版本',douban_id:'豆瓣 ID',douban_url:'豆瓣链接',douban_type:'类型',douban_title:'标题',douban_cover:'封面',douban_score:'豆瓣评分',douban_rating:'个人评分',douban_state:'收藏状态',douban_published_date:'发布日期',douban_collection_date:'收藏日期',douban_tags:'个人标签',douban_synced_at:'最近获取时间'};
+function sameProperty(a:unknown,b:unknown):boolean {
+  if(a instanceof Date || b instanceof Date)return !!dateString(a) && dateString(a)===dateString(b);
+  return JSON.stringify(a)===JSON.stringify(b);
+}
+export function migrationChanges(p:MigrationPreview):MigrationChange[] {
+  if(p.changes)return p.changes;
+  if(!p.patch)return [];
+  const properties=splitNote(p.before).properties;
+  return Object.entries(p.patch).filter(([key,value])=>!Object.prototype.hasOwnProperty.call(properties,key) || !sameProperty(properties[key],value))
+    .map(([key,value])=>({key,before:properties[key],after:value,added:!Object.prototype.hasOwnProperty.call(properties,key)}));
+}
+export function migrationStatus(p:MigrationPreview):MigrationStatus {
+  if(p.issue || !p.patch || p.after===undefined)return 'blocked';
+  return migrationChanges(p).length?'pending':'complete';
+}
 export function prepareMigration(path:string, before:string, settings:DashboardSettings, manualUrl?:string, subject?:DoubanSubject): MigrationPreview {
   try {
     const {properties,body} = splitNote(before);
@@ -21,10 +39,17 @@ export function prepareMigration(path:string, before:string, settings:DashboardS
     if (!item || item.key.startsWith('unresolved:')) throw new Error('缺少可靠的条目标识，请手动关联豆瓣链接');
     if(subject && identityKey(String(subject.id),normalizeType(subject.type),subject.url) !== item.key) throw new Error('远程条目与笔记关联不一致');
     const patch = subject ? propertiesFromSubject(subject) : propertiesFromItem(item);
+    // An already linked note need not be rewritten merely to add empty optional properties.
+    if(properties.douban_source==='douban' && !subject)for(const key of ['douban_cover','douban_score','douban_rating','douban_state','douban_published_date','douban_collection_date','douban_tags']) {
+      const value=patch[key];
+      if(!Object.prototype.hasOwnProperty.call(properties,key) && (value==null || value==='unknown' || Array.isArray(value) && !value.length))delete patch[key];
+    }
     // Offline migration must not claim a successful remote fetch.
     if (!subject && !item.syncedAt) delete patch.douban_synced_at;
-    const after = mergeProperties(before,patch);
-    return {path,before,after,patch,key:item.key};
+    // Formatting and YAML comments alone must not make an otherwise complete note a migration target.
+    const changes=migrationChanges({path,before,patch});
+    const after = changes.length ? mergeProperties(before,patch) : before;
+    return {path,before,after,patch,key:item.key,changes};
   } catch(e) {return {path,before,issue:String(e.message || e)};}
 }
 export function propertiesFromItem(i:DashboardItem): Properties {
@@ -34,9 +59,11 @@ export function propertiesFromItem(i:DashboardItem): Properties {
     ...(i.syncedAt ? {douban_synced_at:i.syncedAt} : {})};
 }
 export function markDuplicatePreviews(previews:MigrationPreview[]): void {
+  const duplicateIssue='多个文件关联同一条目，请处理重复关联后重试';
+  for(const p of previews)if(p.issue===duplicateIssue)delete p.issue;
   const keys = new Map<string,MigrationPreview[]>();
   for(const p of previews) if(p.key) keys.set(p.key,[...(keys.get(p.key)||[]),p]);
-  for(const group of keys.values()) if(group.length > 1) group.forEach(p=>p.issue='多个文件关联同一条目，请处理重复关联后重试');
+  for(const group of keys.values()) if(group.length > 1) group.forEach(p=>p.issue=duplicateIssue);
 }
 export default class MigrationService {
   constructor(private app:App, private settings:()=>DashboardSettings, private pluginId:string) {}
